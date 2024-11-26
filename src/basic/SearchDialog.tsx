@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -132,7 +132,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     majors: [],
   });
 
-  const getFilteredLectures = () => {
+  const getFilteredLectures = useMemo(() => {
     const { query = "", credits, grades, days, times, majors } = searchOptions;
     return lectures
       .filter(
@@ -157,11 +157,10 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
         const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
         return schedules.some(s => s.range.some(time => times.includes(time)));
       });
-  };
+  }, [lectures, searchOptions]);
 
-  const filteredLectures = getFilteredLectures();
-  const lastPage = Math.ceil(filteredLectures.length / PAGE_SIZE);
-  const visibleLectures = filteredLectures.slice(0, page * PAGE_SIZE);
+  const lastPage = Math.ceil(getFilteredLectures.length / PAGE_SIZE);
+  const visibleLectures = getFilteredLectures.slice(0, page * PAGE_SIZE);
   const allMajors = [...new Set(lectures.map(lecture => lecture.major))];
 
   const changeSearchOption = (field: keyof SearchOption, value: SearchOption[typeof field]) => {
@@ -383,7 +382,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                 </CheckboxGroup>
               </FormControl>
             </HStack>
-            <Text align="right">검색결과: {filteredLectures.length}개</Text>
+            <Text align="right">검색결과: {getFilteredLectures.length}개</Text>
             <Box>
               <Table>
                 <Thead>
