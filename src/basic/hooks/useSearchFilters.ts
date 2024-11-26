@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface SearchOption {
   query?: string;
@@ -19,10 +19,8 @@ const defaultState: SearchOption = {
 };
 
 export const useSearchFilters = (initialState: Partial<SearchOption> = {}) => {
-  const [searchOption, setSearchOption] = useState(() => ({
-    ...defaultState,
-    ...initialState,
-  }));
+  const isDoneRef = useRef(false);
+  const [searchOption, setSearchOption] = useState(defaultState);
 
   const handlers = {
     handleChangeQuery: useCallback((value: string) => {
@@ -49,6 +47,12 @@ export const useSearchFilters = (initialState: Partial<SearchOption> = {}) => {
       setSearchOption((prev) => ({ ...prev, majors: value }));
     }, []),
   } as const;
+
+  useEffect(() => {
+    if (isDoneRef.current) return;
+    setSearchOption((prev) => ({ ...prev, ...initialState }));
+    isDoneRef.current = true;
+  }, [initialState, isDoneRef]);
 
   return { searchOption, handlers };
 };
