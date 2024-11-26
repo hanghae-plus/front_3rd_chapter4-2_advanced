@@ -10,35 +10,28 @@ import {
 	TagLabel,
 	Wrap,
 } from "@chakra-ui/react";
-import { SearchOption } from "../basic/types";
+import { memo } from "react";
 
 interface Props {
 	majors: string[];
-	changeSearchOption: (field: keyof SearchOption, value: SearchOption[typeof field]) => void;
+	onMajorsChange: (value: string[]) => void;
 	allMajors: string[];
 }
 
-const MajorSelect = ({ majors, changeSearchOption, allMajors }: Props) => {
+const MajorSelect = memo(({ majors, onMajorsChange, allMajors }: Props) => {
 	return (
 		<FormControl>
 			<FormLabel>전공</FormLabel>
 			<CheckboxGroup
 				colorScheme="green"
 				value={majors}
-				onChange={(values) => changeSearchOption("majors", values as string[])}
+				onChange={(values) => onMajorsChange(values as string[])}
 			>
 				<Wrap spacing={1} mb={2}>
 					{majors.map((major) => (
 						<Tag key={major} size="sm" variant="outline" colorScheme="blue">
 							<TagLabel>{major.split("<p>").pop()}</TagLabel>
-							<TagCloseButton
-								onClick={() =>
-									changeSearchOption(
-										"majors",
-										majors.filter((v) => v !== major)
-									)
-								}
-							/>
+							<TagCloseButton onClick={() => onMajorsChange(majors.filter((v) => v !== major))} />
 						</Tag>
 					))}
 				</Wrap>
@@ -62,6 +55,6 @@ const MajorSelect = ({ majors, changeSearchOption, allMajors }: Props) => {
 			</CheckboxGroup>
 		</FormControl>
 	);
-};
+});
 
 export default MajorSelect;

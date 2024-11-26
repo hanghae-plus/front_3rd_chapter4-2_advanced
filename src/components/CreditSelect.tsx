@@ -1,15 +1,16 @@
 import { FormControl, FormLabel, Select } from "@chakra-ui/react";
+import { memo } from "react";
 
 interface Props {
 	value: number | undefined;
-	onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+	onCreditsChange: (value: number) => void;
 }
 
-const CreditSelect = ({ value, onChange }: Props) => {
+const CreditSelect = memo(({ value, onCreditsChange }: Props) => {
 	return (
 		<FormControl>
 			<FormLabel>학점</FormLabel>
-			<Select value={value} onChange={onChange}>
+			<Select value={value} onChange={(e) => onCreditsChange(Number(e.target.value))}>
 				<option value="">전체</option>
 				<option value="1">1학점</option>
 				<option value="2">2학점</option>
@@ -17,6 +18,6 @@ const CreditSelect = ({ value, onChange }: Props) => {
 			</Select>
 		</FormControl>
 	);
-};
+});
 
 export default CreditSelect;

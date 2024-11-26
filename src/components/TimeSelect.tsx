@@ -10,7 +10,7 @@ import {
 	TagLabel,
 	Wrap,
 } from "@chakra-ui/react";
-import { SearchOption } from "../basic/types";
+import { memo } from "react";
 
 const TIME_SLOTS = [
 	{ id: 1, label: "09:00~09:30" },
@@ -41,17 +41,17 @@ const TIME_SLOTS = [
 
 interface Props {
 	times: number[];
-	changeSearchOption: (field: keyof SearchOption, value: SearchOption[typeof field]) => void;
+	onTimesChange: (value: number[]) => void;
 }
 
-const TimeSelect = ({ times, changeSearchOption }: Props) => {
+const TimeSelect = memo(({ times, onTimesChange }: Props) => {
 	return (
 		<FormControl>
 			<FormLabel>시간</FormLabel>
 			<CheckboxGroup
 				colorScheme="green"
 				value={times}
-				onChange={(values) => changeSearchOption("times", values.map(Number))}
+				onChange={(values) => onTimesChange(values.map(Number))}
 			>
 				<Wrap spacing={1} mb={2}>
 					{times
@@ -59,14 +59,7 @@ const TimeSelect = ({ times, changeSearchOption }: Props) => {
 						.map((time) => (
 							<Tag key={time} size="sm" variant="outline" colorScheme="blue">
 								<TagLabel>{time}교시</TagLabel>
-								<TagCloseButton
-									onClick={() =>
-										changeSearchOption(
-											"times",
-											times.filter((v) => v !== time)
-										)
-									}
-								/>
+								<TagCloseButton onClick={() => onTimesChange(times.filter((v) => v !== time))} />
 							</Tag>
 						))}
 				</Wrap>
@@ -90,6 +83,6 @@ const TimeSelect = ({ times, changeSearchOption }: Props) => {
 			</CheckboxGroup>
 		</FormControl>
 	);
-};
+});
 
 export default TimeSelect;

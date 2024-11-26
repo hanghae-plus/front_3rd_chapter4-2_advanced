@@ -1,15 +1,16 @@
 import { Checkbox, CheckboxGroup, FormControl, FormLabel, HStack } from "@chakra-ui/react";
+import { memo } from "react";
 
 interface Props {
 	value: number[];
-	onChange: (value: number[]) => void;
+	onGradesChange: (value: number[]) => void;
 }
 
-const GradeSelect = ({ value, onChange }: Props) => {
+const GradeSelect = memo(({ value, onGradesChange }: Props) => {
 	return (
 		<FormControl>
 			<FormLabel>학년</FormLabel>
-			<CheckboxGroup value={value} onChange={onChange}>
+			<CheckboxGroup value={value} onChange={(value) => onGradesChange(value.map(Number))}>
 				<HStack spacing={4}>
 					{[1, 2, 3, 4].map((grade) => (
 						<Checkbox key={grade} value={grade}>
@@ -20,6 +21,6 @@ const GradeSelect = ({ value, onChange }: Props) => {
 			</CheckboxGroup>
 		</FormControl>
 	);
-};
+});
 
 export default GradeSelect;

@@ -116,14 +116,41 @@ const SearchDialog = memo(({ searchInfo, onClose }: Props) => {
 		[lectures]
 	);
 
-	const changeSearchOption = useCallback(
-		(field: keyof SearchOption, value: SearchOption[typeof field]) => {
-			setPage(1);
-			setSearchOptions({ ...searchOptions, [field]: value });
-			loaderWrapperRef.current?.scrollTo(0, 0);
-		},
-		[]
-	);
+	const onQueryChange = useCallback((value: string) => {
+		setPage(1);
+		setSearchOptions((prev) => ({ ...prev, query: value }));
+		loaderWrapperRef.current?.scrollTo(0, 0);
+	}, []);
+
+	const onCreditsChange = useCallback((value: number) => {
+		setPage(1);
+		setSearchOptions((prev) => ({ ...prev, credits: value }));
+		loaderWrapperRef.current?.scrollTo(0, 0);
+	}, []);
+
+	const onGradesChange = useCallback((value: number[]) => {
+		setPage(1);
+		setSearchOptions((prev) => ({ ...prev, grades: value }));
+		loaderWrapperRef.current?.scrollTo(0, 0);
+	}, []);
+
+	const onDaysChange = useCallback((value: string[]) => {
+		setPage(1);
+		setSearchOptions((prev) => ({ ...prev, days: value }));
+		loaderWrapperRef.current?.scrollTo(0, 0);
+	}, []);
+
+	const onTimesChange = useCallback((value: number[]) => {
+		setPage(1);
+		setSearchOptions((prev) => ({ ...prev, times: value }));
+		loaderWrapperRef.current?.scrollTo(0, 0);
+	}, []);
+
+	const onMajorsChange = useCallback((value: string[]) => {
+		setPage(1);
+		setSearchOptions((prev) => ({ ...prev, majors: value }));
+		loaderWrapperRef.current?.scrollTo(0, 0);
+	}, []);
 
 	useEffect(() => {
 		const start = performance.now();
@@ -176,32 +203,20 @@ const SearchDialog = memo(({ searchInfo, onClose }: Props) => {
 				<ModalBody>
 					<VStack spacing={4} align="stretch">
 						<HStack spacing={4}>
-							<SearchInput
-								value={searchOptions.query}
-								onChange={(e) => changeSearchOption("query", e.target.value)}
-							/>
-							<CreditSelect
-								value={searchOptions.credits}
-								onChange={(e) => changeSearchOption("credits", e.target.value)}
-							/>
+							<SearchInput value={searchOptions.query} onQueryChange={onQueryChange} />
+							<CreditSelect value={searchOptions.credits} onCreditsChange={onCreditsChange} />
 						</HStack>
 
 						<HStack spacing={4}>
-							<GradeSelect
-								value={searchOptions.grades}
-								onChange={(value) => changeSearchOption("grades", value.map(Number))}
-							/>
-							<DaySelect
-								value={searchOptions.days}
-								onChange={(value) => changeSearchOption("days", value as string[])}
-							/>
+							<GradeSelect value={searchOptions.grades} onGradesChange={onGradesChange} />
+							<DaySelect value={searchOptions.days} onDaysChange={onDaysChange} />
 						</HStack>
 
 						<HStack spacing={4}>
-							<TimeSelect times={searchOptions.times} changeSearchOption={changeSearchOption} />
+							<TimeSelect times={searchOptions.times} onTimesChange={onTimesChange} />
 							<MajorSelect
 								majors={searchOptions.majors}
-								changeSearchOption={changeSearchOption}
+								onMajorsChange={onMajorsChange}
 								allMajors={allMajors}
 							/>
 						</HStack>
