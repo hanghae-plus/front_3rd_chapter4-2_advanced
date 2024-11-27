@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -34,6 +34,7 @@ import { Lecture } from "./types.ts";
 import { parseSchedule } from "./utils.ts";
 import axios, { AxiosResponse } from "axios";
 import { DAY_LABELS } from "./constants.ts";
+import React from "react";
 
 interface Props {
   searchInfo: {
@@ -163,11 +164,14 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
   const visibleLectures = getFilteredLectures.slice(0, page * PAGE_SIZE);
   const allMajors = [...new Set(lectures.map(lecture => lecture.major))];
 
-  const changeSearchOption = (field: keyof SearchOption, value: SearchOption[typeof field]) => {
-    setPage(1);
-    setSearchOptions({ ...searchOptions, [field]: value });
-    loaderWrapperRef.current?.scrollTo(0, 0);
-  };
+  const changeSearchOption = useCallback(
+    (field: keyof SearchOption, value: SearchOption[typeof field]) => {
+      setPage(1);
+      setSearchOptions({ ...searchOptions, [field]: value });
+      loaderWrapperRef.current?.scrollTo(0, 0);
+    },
+    [searchOptions],
+  );
 
   const addSchedule = (lecture: Lecture) => {
     if (!searchInfo) return;
@@ -228,6 +232,54 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     }));
     setPage(1);
   }, [searchInfo]);
+
+  const MajorClass = React.memo(
+    ({ searchOptions, allMajors }: { searchOptions: SearchOption; allMajors: string[] }) => {
+      return (
+        <FormControl>
+          <FormLabel>전공</FormLabel>
+          <CheckboxGroup
+            colorScheme="green"
+            value={searchOptions.majors}
+            onChange={values => changeSearchOption("majors", values as string[])}
+          >
+            <Wrap spacing={1} mb={2}>
+              {searchOptions.majors.map(major => (
+                <Tag key={major} size="sm" variant="outline" colorScheme="blue">
+                  <TagLabel>{major.split("<p>").pop()}</TagLabel>
+                  <TagCloseButton
+                    onClick={() =>
+                      changeSearchOption(
+                        "majors",
+                        searchOptions.majors.filter(v => v !== major),
+                      )
+                    }
+                  />
+                </Tag>
+              ))}
+            </Wrap>
+            <Stack
+              spacing={2}
+              overflowY="auto"
+              h="100px"
+              border="1px solid"
+              borderColor="gray.200"
+              borderRadius={5}
+              p={2}
+            >
+              {allMajors.map(major => (
+                <Box key={major}>
+                  <Checkbox key={major} size="sm" value={major}>
+                    {major.replace(/<p>/gi, " ")}
+                  </Checkbox>
+                </Box>
+              ))}
+            </Stack>
+          </CheckboxGroup>
+        </FormControl>
+      );
+    },
+  );
 
   return (
     <Modal isOpen={Boolean(searchInfo)} onClose={onClose} size="6xl">
@@ -339,48 +391,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                   </Stack>
                 </CheckboxGroup>
               </FormControl>
-
-              <FormControl>
-                <FormLabel>전공</FormLabel>
-                <CheckboxGroup
-                  colorScheme="green"
-                  value={searchOptions.majors}
-                  onChange={values => changeSearchOption("majors", values as string[])}
-                >
-                  <Wrap spacing={1} mb={2}>
-                    {searchOptions.majors.map(major => (
-                      <Tag key={major} size="sm" variant="outline" colorScheme="blue">
-                        <TagLabel>{major.split("<p>").pop()}</TagLabel>
-                        <TagCloseButton
-                          onClick={() =>
-                            changeSearchOption(
-                              "majors",
-                              searchOptions.majors.filter(v => v !== major),
-                            )
-                          }
-                        />
-                      </Tag>
-                    ))}
-                  </Wrap>
-                  <Stack
-                    spacing={2}
-                    overflowY="auto"
-                    h="100px"
-                    border="1px solid"
-                    borderColor="gray.200"
-                    borderRadius={5}
-                    p={2}
-                  >
-                    {allMajors.map(major => (
-                      <Box key={major}>
-                        <Checkbox key={major} size="sm" value={major}>
-                          {major.replace(/<p>/gi, " ")}
-                        </Checkbox>
-                      </Box>
-                    ))}
-                  </Stack>
-                </CheckboxGroup>
-              </FormControl>
+              <MajorClass searchOptions={searchOptions} allMajors={allMajors} />
             </HStack>
             <Text align="right">검색결과: {getFilteredLectures.length}개</Text>
             <Box>
