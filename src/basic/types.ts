@@ -13,3 +13,9 @@ export interface Schedule {
   range: number[]
   room?: string;
 }
+
+export interface MajorsContextType {
+  majors: Map<string, string>;
+  addMajors: (lectures: Lecture[]) => void;
+  getMajorLabel: (major: string) => string;
+}

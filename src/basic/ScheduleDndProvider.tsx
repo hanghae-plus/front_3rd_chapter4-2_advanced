@@ -1,7 +1,9 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { DndContext, Modifier, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { PropsWithChildren } from "react";
+import { PropsWithChildren, useCallback, useMemo } from "react";
 import { CellSize, DAY_LABELS } from "./constants.ts";
 import { useScheduleContext } from "./ScheduleContext.tsx";
+
 
 function createSnapModifier(): Modifier {
   return ({ transform, containerNodeRect, draggingNodeRect }) => {
@@ -26,8 +28,6 @@ function createSnapModifier(): Modifier {
   };
 }
 
-const modifiers = [createSnapModifier()]
-
 export default function ScheduleDndProvider({ children }: PropsWithChildren) {
   const { schedulesMap, setSchedulesMap } = useScheduleContext();
   const sensors = useSensors(
@@ -36,14 +36,17 @@ export default function ScheduleDndProvider({ children }: PropsWithChildren) {
         distance: 8,
       },
     })
-  );
-
+  )
+  const modifiers = useMemo(() => [createSnapModifier()], []);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = useCallback((event: any) => {
     const { active, delta } = event;
     const { x, y } = delta;
     const [tableId, index] = active.id.split(':');
     const schedule = schedulesMap[tableId][index];
+
+    if (!schedule) return;
+
     const nowDayIndex = DAY_LABELS.indexOf(schedule.day as typeof DAY_LABELS[number])
     const moveDayIndex = Math.floor(x / 80);
     const moveTimeIndex = Math.floor(y / 30);
@@ -61,7 +64,8 @@ export default function ScheduleDndProvider({ children }: PropsWithChildren) {
         }
       })
     })
-  };
+
+  }, [schedulesMap, setSchedulesMap]);
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd} modifiers={modifiers}>

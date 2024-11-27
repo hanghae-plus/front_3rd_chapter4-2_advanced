@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
-  Button,
   Checkbox,
   CheckboxGroup,
   FormControl,
@@ -21,7 +21,6 @@ import {
   TagCloseButton,
   TagLabel,
   Tbody,
-  Td,
   Text,
   Th,
   Thead,
@@ -29,13 +28,18 @@ import {
   VStack,
   Wrap,
 } from '@chakra-ui/react';
-import { useScheduleContext } from './ScheduleContext.tsx';
-import { Lecture } from './types.ts';
+
+import { Lecture, Schedule } from './types.ts';
 import { parseSchedule } from "./utils.ts";
 import axios from "axios";
 import { DAY_LABELS } from './constants.ts';
 import { createCachedApiCall } from './core/createCachedApiCall.ts';
 import { filterByCredits, filterByDays, filterByGrades, filterByMajors, filterByQuery, filterByTimes } from './lib/searchDialogUtils.ts';
+import { useMajorsContext } from './context/MajorsContext.tsx';
+import { LectureRow } from './LectureRow.tsx';
+import { useScheduleContext } from './ScheduleContext.tsx';
+
+// import { MajorsSelect } from './MajorsSelect.tsx';
 
 interface Props {
   searchInfo: {
@@ -110,10 +114,14 @@ const fetchAllLectures = () => {
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
   const { setSchedulesMap } = useScheduleContext();
 
+  const [renderedRows, setRenderedRows] = useState<React.ReactNode[]>([]);
+  const [currentChunk, setCurrentChunk] = useState(0);
+
+  const CHUNK_SIZE = 100;
   const loaderWrapperRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
   const [lectures, setLectures] = useState<Lecture[]>([]);
-  const [page, setPage] = useState(1);
+  const [_, setPage] = useState(1);
   const [searchOptions, setSearchOptions] = useState<SearchOption>({
     query: '',
     grades: [],
@@ -121,6 +129,8 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     times: [],
     majors: [],
   });
+
+  const { addMajors } = useMajorsContext() as unknown as { addMajors: (lectures: Lecture[]) => void };
 
   const queryFilter = useMemo(() => 
     filterByQuery(searchOptions.query || ''), 
@@ -158,10 +168,6 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
 
   const lastPage = useMemo(() => Math.ceil(filteredLectures.length / PAGE_SIZE), [filteredLectures.length]);
 
-  const visibleLectures = useMemo(() => 
-    filteredLectures.slice(0, page * PAGE_SIZE), 
-    [filteredLectures, page]
-  );
   const allMajors = useMemo(() => 
     [...new Set(lectures.map(lecture => lecture?.major))], 
     [lectures]
@@ -233,6 +239,70 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     }))
     setPage(1);
   }, [searchInfo]);
+
+  useEffect(() => {
+    if (lectures.length > 0) {
+      addMajors(lectures);
+    }
+  }, [lectures, addMajors]);
+
+  useEffect(() => {
+    if (filteredLectures.length > 0) {
+      // 초기 청크 렌더링
+      const initialRows = filteredLectures
+        .slice(0, CHUNK_SIZE)
+        .map((lecture, index) => (
+          <LectureRow
+            key={`${lecture.id}-${index}`}
+            lecture={lecture}
+            onAddSchedule={addSchedule}
+          />
+        ));
+      setRenderedRows(initialRows);
+      setCurrentChunk(1);
+    }
+  }, [filteredLectures]);
+
+  const loadMoreRows = useCallback(() => {
+    const startIdx = currentChunk * CHUNK_SIZE;
+    const endIdx = startIdx + CHUNK_SIZE;
+    
+    if (startIdx < filteredLectures.length) {
+      const newRows = filteredLectures
+        .slice(startIdx, endIdx)
+        .map((lecture, index) => (
+          <LectureRow
+            key={`${lecture.id}-${startIdx + index}`}
+            lecture={lecture}
+            onAddSchedule={addSchedule}
+          />
+        ));
+      
+      setRenderedRows(prev => [...prev, ...newRows]);
+      setCurrentChunk(prev => prev + 1);
+    }
+  }, [currentChunk, filteredLectures, addSchedule]);
+
+  useEffect(() => {
+    const $loader = loaderRef.current;
+    const $loaderWrapper = loaderWrapperRef.current;
+
+    if (!$loader || !$loaderWrapper) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          loadMoreRows();
+        }
+      },
+      { threshold: 0, root: $loaderWrapper }
+    );
+
+    observer.observe($loader);
+    return () => observer.unobserve($loader);
+  }, [loadMoreRows]);
 
   return (
     <Modal isOpen={Boolean(searchInfo)} onClose={onClose} size="6xl">
@@ -314,8 +384,10 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                       </Tag>
                     ))}
                   </Wrap>
-                  <Stack spacing={2} overflowY="auto" h="100px" border="1px solid" borderColor="gray.200"
-                         borderRadius={5} p={2}>
+                  <Stack 
+                    spacing={2} overflowY="auto" h="100px" border="1px solid" borderColor="gray.200"
+                    borderRadius={5} p={2}
+                  >
                     {TIME_SLOTS.map(({ id, label }) => (
                       <Box key={id}>
                         <Checkbox key={id} size="sm" value={id}>
@@ -343,8 +415,10 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                       </Tag>
                     ))}
                   </Wrap>
-                  <Stack spacing={2} overflowY="auto" h="100px" border="1px solid" borderColor="gray.200"
-                         borderRadius={5} p={2}>
+                  <Stack 
+                    spacing={2} overflowY="auto" h="100px" border="1px solid" borderColor="gray.200"
+                    borderRadius={5} p={2}
+                  >
                     {allMajors.map(major => (
                       <Box key={major}>
                         <Checkbox key={major} size="sm" value={major}>
@@ -355,6 +429,10 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                   </Stack>
                 </CheckboxGroup>
               </FormControl>
+              {/* <MajorsSelect 
+                selectedMajors={searchOptions.majors}
+                onChange={(majors) => changeSearchOption('majors', majors)}
+              /> */}
             </HStack>
             <Text align="right">
               검색결과: {filteredLectures.length}개
@@ -377,19 +455,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
               <Box overflowY="auto" maxH="500px" ref={loaderWrapperRef}>
                 <Table size="sm" variant="striped">
                   <Tbody>
-                    {visibleLectures.map((lecture, index) => (
-                      <Tr key={`${lecture.id}-${index}`}>
-                        <Td width="100px">{lecture?.id}</Td>
-                        <Td width="50px">{lecture?.grade}</Td>
-                        <Td width="200px">{lecture?.title}</Td>
-                        <Td width="50px">{lecture?.credits}</Td>
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.major }}/>
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.schedule }}/>
-                        <Td width="80px">
-                          <Button size="sm" colorScheme="green" onClick={() => addSchedule(lecture)}>추가</Button>
-                        </Td>
-                      </Tr>
-                    ))}
+                    {renderedRows}
                   </Tbody>
                 </Table>
                 <Box ref={loaderRef} h="20px"/>
