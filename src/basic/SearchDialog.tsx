@@ -21,7 +21,6 @@ import { Lecture } from './types.ts';
 import { parseSchedule } from "./utils.ts";
 import { LectureTableRow } from '../lecture/ui/LectureTableRow.tsx';
 import { PAGE_SIZE } from '../page/model/constants.ts';
-import { createCachedFetch } from '../lecture/api/cachedAPI.ts';
 import { FilterCheckboxGroup } from '../search/ui/FilterCheckboxGroup.tsx';
 import { ComplexFilterGroup } from '../search/ui/ComplexFilterGroup.tsx';
 import { DAY_OPTIONS, GRADE_OPTIONS, TIME_SLOTS } from '../search/model/constants.ts';
@@ -30,6 +29,7 @@ import { CreditSelect } from '../search/ui/CreditSelect.tsx';
 import { useFilteredLectures } from '../lecture/model/useFilteredLecture.ts';
 import { useInfiniteScroll } from '../page/model/useInfiniteScroll.ts';
 import { SearchOption } from '../search/model/Search.ts';
+import { useLectureData } from '../lecture/model/useLectureData.ts';
 
 interface Props {
   searchInfo: {
@@ -40,28 +40,14 @@ interface Props {
   onClose: () => void;
 }
 
-// 개선된 방식 - 캐시를 사용한 효율적인 API 호출
-const { fetchMajors, fetchLiberalArts } = createCachedFetch<Lecture[]>();
-const fetchAllLecturesEfficient = async () => {
-  // 동일하게 6번 호출하지만, 캐시로 인해 실제로는 2번만 네트워크 요청
-  const results = await Promise.all([
-    (console.log('API Call 1', performance.now()), await fetchMajors()),
-    (console.log('API Call 2', performance.now()), await fetchLiberalArts()),
-    (console.log('API Call 3', performance.now()), await fetchMajors()),
-    (console.log('API Call 4', performance.now()), await fetchLiberalArts()),
-    (console.log('API Call 5', performance.now()), await fetchMajors()),
-    (console.log('API Call 6', performance.now()), await fetchLiberalArts()),
-  ]);
-  return results;
-};
-
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
   const { setSchedulesMap } = useScheduleContext();
 
+  const { lectures, isLoading, error } = useLectureData();
+
   const loaderWrapperRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
-  const [lectures, setLectures] = useState<Lecture[]>([]);
   const [page, setPage] = useState(1);
   const [searchOptions, setSearchOptions] = useState<SearchOption>({
     query: '',
@@ -117,17 +103,6 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
   });
 
   useEffect(() => {
-    const start = performance.now();
-    console.log('API 호출 시작: ', start)
-    fetchAllLecturesEfficient().then(results => {
-      const end = performance.now();
-      console.log('모든 API 호출 완료 ', end)
-      console.log('API 호출에 걸린 시간(ms): ', end - start)
-      setLectures(results.flatMap(result => result.data));
-    })
-  }, []);
-
-  useEffect(() => {
     setSearchOptions(prev => ({
       ...prev,
       days: searchInfo?.day ? [searchInfo.day] : [],
@@ -136,97 +111,116 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     setPage(1);
   }, [searchInfo]);
 
+  if (error) {
+    return (
+      <Modal isOpen={Boolean(searchInfo)} onClose={onClose}>
+        <ModalContent>
+          <ModalHeader>오류 발생</ModalHeader>
+          <ModalBody>
+            데이터를 불러오는 중 오류가 발생했습니다: {error.message}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    );
+  }
+
   return (
     <Modal isOpen={Boolean(searchInfo)} onClose={onClose} size="6xl">
       <ModalOverlay/>
       <ModalContent maxW="90vw" w="1000px">
         <ModalHeader>수업 검색</ModalHeader>
         <ModalCloseButton/>
-        <ModalBody>
-          <VStack spacing={4} align="stretch">
-            <HStack spacing={4}>
-              <SearchInput
-                value={searchOptions.query}
-                onChange={(value) => changeSearchOption('query', value)}
-              />
-              <CreditSelect
-                value={searchOptions.credits}
-                onChange={(value) => changeSearchOption('credits', value)}
-              />
-            </HStack>
+        {isLoading ? (
+          <ModalBody>
+            <Text>데이터를 불러오는 중입니다...</Text>
+          </ModalBody>
+        ) : (
+          <ModalBody>
+            <VStack spacing={4} align="stretch">
+              <HStack spacing={4}>
+                <SearchInput
+                  value={searchOptions.query}
+                  onChange={(value) => changeSearchOption('query', value)}
+                />
+                <CreditSelect
+                  value={searchOptions.credits}
+                  onChange={(value) => changeSearchOption('credits', value)}
+                />
+              </HStack>
 
-            <HStack spacing={4}>
-              <FilterCheckboxGroup
-                label="학년"
-                name="grades"
-                options={GRADE_OPTIONS}
-                value={searchOptions.grades}
-                onChange={(values) => changeSearchOption('grades', values.map(Number))}
-              />
+              <HStack spacing={4}>
+                <FilterCheckboxGroup
+                  label="학년"
+                  name="grades"
+                  options={GRADE_OPTIONS}
+                  value={searchOptions.grades}
+                  onChange={(values) => changeSearchOption('grades', values.map(Number))}
+                />
 
-              <FilterCheckboxGroup
-                label="요일"
-                name="days"
-                options={DAY_OPTIONS}
-                value={searchOptions.days}
-                onChange={(values) => changeSearchOption('days', values as string[])}
-              />
-            </HStack>
+                <FilterCheckboxGroup
+                  label="요일"
+                  name="days"
+                  options={DAY_OPTIONS}
+                  value={searchOptions.days}
+                  onChange={(values) => changeSearchOption('days', values as string[])}
+                />
+              </HStack>
 
-            <HStack spacing={4}>
-              <ComplexFilterGroup
-                label="시간"
-                options={TIME_SLOTS}
-                value={searchOptions.times}
-                onChange={(values) => changeSearchOption('times', values.map(Number))}
-                tagLabelFormatter={(time) => `${time}교시`}
-                checkboxLabelFormatter={(option) => `${option.id}교시(${option.label})`}
-              />
+              <HStack spacing={4}>
+                <ComplexFilterGroup
+                  label="시간"
+                  options={TIME_SLOTS}
+                  value={searchOptions.times}
+                  onChange={(values) => changeSearchOption('times', values.map(Number))}
+                  tagLabelFormatter={(time) => `${time}교시`}
+                  checkboxLabelFormatter={(option) => `${option.id}교시(${option.label})`}
+                />
 
-              <ComplexFilterGroup
-                label="전공"
-                options={allMajors.map(major => ({ id: major, label: major }))}
-                value={searchOptions.majors}
-                onChange={(values) => changeSearchOption('majors', values as string[])}
-                tagLabelFormatter={(major) => String(major).split("<p>").pop() || ''}
-                checkboxLabelFormatter={(option) => option.label.replace(/<p>/gi, ' ')}
-              />
-            </HStack>
-            <Text align="right">
-              검색결과: {filteredLectures.length}개
-            </Text>
-            <Box>
-              <Table>
-                <Thead>
-                  <Tr>
-                    <Th width="100px">과목코드</Th>
-                    <Th width="50px">학년</Th>
-                    <Th width="200px">과목명</Th>
-                    <Th width="50px">학점</Th>
-                    <Th width="150px">전공</Th>
-                    <Th width="150px">시간</Th>
-                    <Th width="80px"></Th>
-                  </Tr>
-                </Thead>
-              </Table>
-
-              <Box overflowY="auto" maxH="500px" ref={loaderWrapperRef}>
-                <Table size="sm" variant="striped">
-                  <Tbody>
-                    {visibleLectures.map((lecture, index) => (
-                      <LectureTableRow 
-                        key={`${lecture.id}-${index}`}
-                        lecture={lecture}
-                        onAddSchedule={addSchedule}
-                      />
-                    ))}
-                  </Tbody>
+                <ComplexFilterGroup
+                  label="전공"
+                  options={allMajors.map(major => ({ id: major, label: major }))}
+                  value={searchOptions.majors}
+                  onChange={(values) => changeSearchOption('majors', values as string[])}
+                  tagLabelFormatter={(major) => String(major).split("<p>").pop() || ''}
+                  checkboxLabelFormatter={(option) => option.label.replace(/<p>/gi, ' ')}
+                />
+              </HStack>
+              <Text align="right">
+                검색결과: {filteredLectures.length}개
+              </Text>
+              <Box>
+                <Table>
+                  <Thead>
+                    <Tr>
+                      <Th width="100px">과목코드</Th>
+                      <Th width="50px">학년</Th>
+                      <Th width="200px">과목명</Th>
+                      <Th width="50px">학점</Th>
+                      <Th width="150px">전공</Th>
+                      <Th width="150px">시간</Th>
+                      <Th width="80px"></Th>
+                    </Tr>
+                  </Thead>
                 </Table>
-                <Box ref={loaderRef} h="20px"/>
+
+                <Box overflowY="auto" maxH="500px" ref={loaderWrapperRef}>
+                  <Table size="sm" variant="striped">
+                    <Tbody>
+                      {visibleLectures.map((lecture, index) => (
+                        <LectureTableRow 
+                          key={`${lecture.id}-${index}`}
+                          lecture={lecture}
+                          onAddSchedule={addSchedule}
+                        />
+                      ))}
+                    </Tbody>
+                  </Table>
+                  <Box ref={loaderRef} h="20px"/>
+                </Box>
               </Box>
-            </Box>
-          </VStack>
-        </ModalBody>
+            </VStack>
+          </ModalBody>
+        )}
       </ModalContent>
     </Modal>
   );
