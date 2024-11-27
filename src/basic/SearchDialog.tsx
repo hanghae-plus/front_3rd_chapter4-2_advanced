@@ -32,7 +32,7 @@ import {
 import { useScheduleContext } from './ScheduleContext.tsx';
 import { Lecture } from './types.ts';
 import { parseSchedule } from "./utils.ts";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { DAY_LABELS } from './constants.ts';
 
 interface Props {
@@ -82,8 +82,29 @@ const TIME_SLOTS = [
 
 const PAGE_SIZE = 100;
 
-const fetchMajors = () => axios.get<Lecture[]>('/schedules-majors.json');
-const fetchLiberalArts = () => axios.get<Lecture[]>('/schedules-liberal-arts.json');
+const fetchMajors = (() => {
+  let cachedPromise: Promise<AxiosResponse<Lecture[]>> | null = null
+
+  return () => {
+    if (cachedPromise === null) {
+      cachedPromise = axios.get<Lecture[]>('/schedules-majors.json');
+    }
+
+    return cachedPromise;
+  }
+})()
+
+const fetchLiberalArts = (() => {
+  let cachedPromise: Promise<AxiosResponse<Lecture[]>> | null = null
+
+  return () => {
+    if (cachedPromise === null) {
+      cachedPromise = axios.get<Lecture[]>('/schedules-liberal-arts.json');
+    }
+
+    return cachedPromise;
+  }
+})()
 
 const fetchAllLectures = async () => await Promise.all([
   (console.log('API Call 1', performance.now()), fetchMajors()),
