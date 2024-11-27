@@ -31,3 +31,18 @@
 > 클로저를 이용한 캐시 구현으로 API 호출 시간이 평균 53.2% 감소했습니다.
 
 ---
+
+## Drag 렌더링 최적회
+
+- `ScheduleTable` 내의 `useContext` 대신 `useDndMonitor` 모니터를 사용하여 특정 스케쥴 테이블에서 drag시 해당 컴포넌트만 리렌더링 되도록 개선
+
+1️⃣ 개선 전
+
+2️⃣ 개선 후
+![alt text](images/drag_after.png)
+
+- 추가 개선
+  - `onDragStart ,onDragEnd` 시에 `drag` 중인 `table`이 아니면 리렌더링이 안일어나도록 추가
+    ![alt text](images/drag_added_after.png)
+  - 실제 `drag` 했을 때
+    ![alt text](images/drag_added_after_2.png)
