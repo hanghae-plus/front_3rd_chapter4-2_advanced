@@ -22,12 +22,12 @@ import { parseSchedule } from "./utils.ts";
 import { LectureTableRow } from '../lecture/ui/LectureTableRow.tsx';
 import { PAGE_SIZE } from '../page/model/constants.ts';
 import { createCachedFetch } from '../lecture/api/cachedAPI.ts';
-import { matchCredit, matchesSchedule, matchGrade, matchLectureQuery, matchMajor } from '../lecture/model/Lecture.ts';
 import { FilterCheckboxGroup } from '../search/ui/FilterCheckboxGroup.tsx';
 import { ComplexFilterGroup } from '../search/ui/ComplexFilterGroup.tsx';
 import { DAY_OPTIONS, GRADE_OPTIONS, TIME_SLOTS } from '../search/model/constants.ts';
 import { SearchInput } from '../search/ui/SearchInput.tsx';
 import { CreditSelect } from '../search/ui/CreditSelect.tsx';
+import { useFilteredLectures } from '../hooks/useFilteredLecture.ts';
 
 interface Props {
   searchInfo: {
