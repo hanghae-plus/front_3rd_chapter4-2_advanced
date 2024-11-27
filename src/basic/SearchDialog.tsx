@@ -271,3 +271,5 @@ const LectureRow = memo(({
     </Tr>
   );
 });
+
+LectureRow.displayName = "LectureRow";

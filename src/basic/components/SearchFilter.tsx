@@ -174,4 +174,6 @@ const SearchFilter = memo(({ searchOptions, onChangeOption, allMajors }: Props) 
   );
 });
 
+SearchFilter.displayName = 'SearchFilter';
+
 export default SearchFilter;
