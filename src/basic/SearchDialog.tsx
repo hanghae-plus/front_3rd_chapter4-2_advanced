@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import {
   Box,
   Button,
@@ -130,6 +130,84 @@ const fetchAllLectures = async () => {
   ]);
 }
 
+// 랜더링 개선
+const MajorCheckbox = memo(({ major, checked, onChange }: {
+  major: string;
+  checked: boolean;
+  onChange: (major: string, checked: boolean) => void;
+}) => (
+  <Box>
+    <Checkbox 
+      size="sm" 
+      isChecked={checked}
+      onChange={(e) => onChange(major, e.target.checked)}
+    >
+      {major.replace(/<p>/gi, ' ')}
+    </Checkbox>
+  </Box>
+));
+
+const MajorSection = memo(({ 
+  allMajors, 
+  selectedMajors, 
+  onChangeMajors 
+}: {
+  allMajors: string[];
+  selectedMajors: string[];
+  onChangeMajors: (value: string[]) => void;
+}) => {
+  // 체크박스 변경 핸들러
+  const handleMajorChange = useCallback((major: string, checked: boolean) => {
+    if (checked) {
+      onChangeMajors([...selectedMajors, major]);
+    } else {
+      onChangeMajors(selectedMajors.filter(m => m !== major));
+    }
+  }, [selectedMajors, onChangeMajors]);
+
+  return (
+    <FormControl>
+      <FormLabel>전공</FormLabel>
+      <CheckboxGroup
+        colorScheme="green"
+        value={selectedMajors}
+      >
+        
+        <Wrap spacing={1} mb={2}>
+          {selectedMajors.map(major => (
+            <Tag key={major} size="sm" variant="outline" colorScheme="blue">
+              <TagLabel>{major.split("<p>").pop()}</TagLabel>
+              <TagCloseButton
+                onClick={() => handleMajorChange(major, false)}
+              />
+            </Tag>
+          ))}
+        </Wrap>
+        
+        <Stack 
+          spacing={2} 
+          overflowY="auto" 
+          h="100px" 
+          border="1px solid" 
+          borderColor="gray.200"
+          borderRadius={5} 
+          p={2}
+        >
+          {allMajors.map(major => (
+            <MajorCheckbox
+              key={major}
+              major={major}
+              checked={selectedMajors.includes(major)}
+              onChange={handleMajorChange}
+            />
+          ))}
+        </Stack>
+      </CheckboxGroup>
+    </FormControl>
+  );
+});
+
+
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
 // useMemo와 useCallback 사용해보기
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
@@ -186,17 +264,19 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     [lectures]
   );
 
-  const changeSearchOption = (field: keyof SearchOption, value: SearchOption[typeof field]) => {
+  const changeSearchOption = useCallback((
+    field: keyof SearchOption, 
+    value: SearchOption[typeof field]
+  ) => {
     setPage(1);
-    setSearchOptions(({ ...searchOptions, [field]: value }));
+    setSearchOptions(prev => ({ ...prev, [field]: value }));
     loaderWrapperRef.current?.scrollTo(0, 0);
-  };
+  }, []);
 
-  const addSchedule = (lecture: Lecture) => {
+  const addSchedule = useCallback((lecture: Lecture) => {
     if (!searchInfo) return;
 
     const { tableId } = searchInfo;
-
     const schedules = parseSchedule(lecture.schedule).map(schedule => ({
       ...schedule,
       lecture
@@ -208,7 +288,15 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     }));
 
     onClose();
-  };
+  }, [searchInfo, setSchedulesMap, onClose]);
+  
+
+  const handleMajorsChange = useCallback((majors: string[]) => {
+    changeSearchOption('majors', majors);
+  }, [changeSearchOption]);
+
+
+
 
   useEffect(() => {
     const start = performance.now();
@@ -344,34 +432,11 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                 </CheckboxGroup>
               </FormControl>
 
-              <FormControl>
-                <FormLabel>전공</FormLabel>
-                <CheckboxGroup
-                  colorScheme="green"
-                  value={searchOptions.majors}
-                  onChange={(values) => changeSearchOption('majors', values as string[])}
-                >
-                  <Wrap spacing={1} mb={2}>
-                    {searchOptions.majors.map(major => (
-                      <Tag key={major} size="sm" variant="outline" colorScheme="blue">
-                        <TagLabel>{major.split("<p>").pop()}</TagLabel>
-                        <TagCloseButton
-                          onClick={() => changeSearchOption('majors', searchOptions.majors.filter(v => v !== major))}/>
-                      </Tag>
-                    ))}
-                  </Wrap>
-                  <Stack spacing={2} overflowY="auto" h="100px" border="1px solid" borderColor="gray.200"
-                         borderRadius={5} p={2}>
-                    {allMajors.map(major => (
-                      <Box key={major}>
-                        <Checkbox key={major} size="sm" value={major}>
-                          {major.replace(/<p>/gi, ' ')}
-                        </Checkbox>
-                      </Box>
-                    ))}
-                  </Stack>
-                </CheckboxGroup>
-              </FormControl>
+              <MajorSection
+                allMajors={allMajors}
+                selectedMajors={searchOptions.majors}
+                onChangeMajors={handleMajorsChange}
+              />
             </HStack>
             <Text align="right">
               검색결과: {filteredLectures.length}개
