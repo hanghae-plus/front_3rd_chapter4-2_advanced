@@ -33,6 +33,7 @@ import { useScheduleContext } from './ScheduleContext.tsx';
 import { Lecture } from './types.ts';
 import { parseSchedule } from "./utils.ts";
 import { DAY_LABELS } from './constants.ts';
+import { PAGE_SIZE } from '../page/model/constants.ts';
 import { createCachedFetch } from '../lecture/api/cachedAPI.ts';
 
 interface Props {
