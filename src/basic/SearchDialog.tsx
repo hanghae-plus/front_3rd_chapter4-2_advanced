@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
-  Button,
   Checkbox,
   CheckboxGroup,
   FormControl,
@@ -21,7 +20,6 @@ import {
   TagCloseButton,
   TagLabel,
   Tbody,
-  Td,
   Text,
   Th,
   Thead,
@@ -34,7 +32,10 @@ import { Lecture } from './types.ts';
 import { parseSchedule } from "./utils.ts";
 import axios, { AxiosResponse } from "axios";
 import { DAY_LABELS } from './constants.ts';
-import MajorCheckbox from './MajorCheckbox.tsx';
+import { FixedSizeList as List } from 'react-window';
+
+import MajorCheckbox from './components/MajorCheckbox.tsx';
+import LectureRow from './components/LectureRow.tsx';
 
 interface Props {
   searchInfo: {
@@ -155,6 +156,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
   });
 
   const getFilteredLectures = useMemo(() => {
+    console.log('getFilteredLectures',lectures)
     const { query = '', credits, grades, days, times, majors } = searchOptions;
     return lectures
       .filter(lecture =>
@@ -253,6 +255,15 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     setPage(1);
   }, [searchInfo]);
 
+  // react-window의 List에서 사용할 Row 컴포넌트
+  const Row = useCallback(({ index, style }) => {
+    const lecture = visibleLectures[index];
+    console.log(visibleLectures)
+    return (
+      <LectureRow style={style}  key={`${lecture.id}-${index}`} lecture={lecture} addSchedule={() => addSchedule(lecture)}/>
+    );
+  }, [visibleLectures, addSchedule]);
+  
   return (
     <Modal isOpen={Boolean(searchInfo)} onClose={onClose} size="6xl">
       <ModalOverlay/>
@@ -380,41 +391,28 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
               검색결과: {getFilteredLectures.length}개
             </Text>
             <Box>
-              <Table>
-                <Thead>
-                  <Tr>
-                    <Th width="100px">과목코드</Th>
-                    <Th width="50px">학년</Th>
-                    <Th width="200px">과목명</Th>
-                    <Th width="50px">학점</Th>
-                    <Th width="150px">전공</Th>
-                    <Th width="150px">시간</Th>
-                    <Th width="80px"></Th>
-                  </Tr>
-                </Thead>
-              </Table>
+              <Box borderBottom="1px solid #e2e8f0" py={2} display="flex">
+                <Box width="100px"><Text fontWeight="bold">과목코드</Text></Box>
+                <Box width="50px"><Text fontWeight="bold">학년</Text></Box>
+                <Box width="200px"><Text fontWeight="bold">과목명</Text></Box>
+                <Box width="50px"><Text fontWeight="bold">학점</Text></Box>
+                <Box width="150px"><Text fontWeight="bold">전공</Text></Box>
+                <Box width="150px"><Text fontWeight="bold">시간</Text></Box>
+                <Box width="80px"><Text fontWeight="bold"></Text></Box>
+              </Box>
 
               <Box overflowY="auto" maxH="500px" ref={loaderWrapperRef}>
-                <Table size="sm" variant="striped">
-                  <Tbody>
-                    {visibleLectures.map((lecture, index) => (
-                      <Tr key={`${lecture.id}-${index}`}>
-                        <Td width="100px">{lecture.id}</Td>
-                        <Td width="50px">{lecture.grade}</Td>
-                        <Td width="200px">{lecture.title}</Td>
-                        <Td width="50px">{lecture.credits}</Td>
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.major }}/>
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.schedule }}/>
-                        <Td width="80px">
-                          <Button size="sm" colorScheme="green" onClick={() => addSchedule(lecture)}>추가</Button>
-                        </Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
+                <List
+                  height={500}
+                  itemCount={visibleLectures.length}
+                  itemSize={80} // 각 행의 높이 (조정 필요)
+                  width="100%"
+                >
+                  {Row}
+                </List>
                 <Box ref={loaderRef} h="20px"/>
               </Box>
-            </Box>
+              </Box>
           </VStack>
         </ModalBody>
       </ModalContent>
