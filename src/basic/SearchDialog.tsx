@@ -15,15 +15,10 @@ import {
   ModalOverlay,
   Select,
   Stack,
-  Table,
   Tag,
   TagCloseButton,
   TagLabel,
-  Tbody,
   Text,
-  Th,
-  Thead,
-  Tr,
   VStack,
   Wrap,
 } from '@chakra-ui/react';
@@ -32,7 +27,7 @@ import { Lecture } from './types.ts';
 import { parseSchedule } from "./utils.ts";
 import axios, { AxiosResponse } from "axios";
 import { DAY_LABELS } from './constants.ts';
-import { FixedSizeList as List } from 'react-window';
+import { FixedSizeList as List, ListOnItemsRenderedProps } from 'react-window';
 
 import MajorCheckbox from './components/MajorCheckbox.tsx';
 import LectureRow from './components/LectureRow.tsx';
@@ -53,6 +48,17 @@ interface SearchOption {
   times: number[],
   majors: string[],
   credits?: number,
+}
+
+interface RowData {
+  lectures: Lecture[];
+  addSchedule: (lecture: Lecture) => void;
+}
+
+interface RowProps {
+  index: number;
+  style: React.CSSProperties;
+  data: RowData;
 }
 
 const TIME_SLOTS = [
@@ -156,7 +162,6 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
   });
 
   const getFilteredLectures = useMemo(() => {
-    console.log('getFilteredLectures',lectures)
     const { query = '', credits, grades, days, times, majors } = searchOptions;
     return lectures
       .filter(lecture =>
@@ -255,15 +260,28 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     setPage(1);
   }, [searchInfo]);
 
-  // react-window의 List에서 사용할 Row 컴포넌트
-  const Row = useCallback(({ index, style }) => {
-    const lecture = visibleLectures[index];
-    console.log(visibleLectures)
-    return (
-      <LectureRow style={style}  key={`${lecture.id}-${index}`} lecture={lecture} addSchedule={() => addSchedule(lecture)}/>
-    );
-  }, [visibleLectures, addSchedule]);
+  // infinite scrolling
+  const handleItemsRendered = useCallback((props: ListOnItemsRenderedProps) => {
+    const { visibleStopIndex } = props;
+    if (visibleStopIndex >= visibleLectures.length - 1 && page < Math.ceil(getFilteredLectures.length / PAGE_SIZE)) {
+      setPage(prevPage => prevPage + 1);
+    }
+  }, [visibleLectures.length, page, getFilteredLectures.length]);
   
+  // react-window의 List에서 사용할 Row 컴포넌트
+  const Row = useCallback(({ index, style, data }:RowProps) => {
+    const lecture = data.lectures[index];
+    const addSchedule = data.addSchedule;
+
+    return (
+      <LectureRow
+        lecture={lecture}
+        addSchedule={addSchedule}
+        style={style}
+      />
+    );
+  }, []);
+
   return (
     <Modal isOpen={Boolean(searchInfo)} onClose={onClose} size="6xl">
       <ModalOverlay/>
@@ -376,12 +394,6 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                         borderRadius={5} p={2}>
                     {allMajors.map(major => (
                       <MajorCheckbox key={major} major={major} onChange={()=>handleMajorCheckboxChange} />
-
-                      // <Box key={major}>
-                      //   <Checkbox key={major} size="sm" value={major}>
-                      //     {major.replace(/<p>/gi, ' ')}
-                      //   </Checkbox>
-                      // </Box>
                     ))}
                   </Stack>
                 </CheckboxGroup>
@@ -391,28 +403,31 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
               검색결과: {getFilteredLectures.length}개
             </Text>
             <Box>
-              <Box borderBottom="1px solid #e2e8f0" py={2} display="flex">
-                <Box width="100px"><Text fontWeight="bold">과목코드</Text></Box>
-                <Box width="50px"><Text fontWeight="bold">학년</Text></Box>
-                <Box width="200px"><Text fontWeight="bold">과목명</Text></Box>
-                <Box width="50px"><Text fontWeight="bold">학점</Text></Box>
-                <Box width="150px"><Text fontWeight="bold">전공</Text></Box>
-                <Box width="150px"><Text fontWeight="bold">시간</Text></Box>
-                <Box width="80px"><Text fontWeight="bold"></Text></Box>
+              {/* 헤더 */}
+              <Box display="flex" borderBottom="2px solid #e2e8f0" padding="8px" fontWeight="bold">
+                <Box width="100px">과목코드</Box>
+                <Box width="50px">학년</Box>
+                <Box width="200px">과목명</Box>
+                <Box width="50px">학점</Box>
+                <Box width="150px">전공</Box>
+                <Box width="150px">시간</Box>
+                <Box width="80px"></Box>
               </Box>
-
-              <Box overflowY="auto" maxH="500px" ref={loaderWrapperRef}>
+              {/* 가상화된 리스트 */}
+              <Box overflow="auto" maxHeight="500px" ref={loaderWrapperRef}>
                 <List
                   height={500}
                   itemCount={visibleLectures.length}
-                  itemSize={80} // 각 행의 높이 (조정 필요)
+                  itemSize={60} // 각 행의 높이
                   width="100%"
-                >
+                  itemData={{ lectures: visibleLectures, addSchedule }}
+                  onItemsRendered={handleItemsRendered}
+                  >
                   {Row}
                 </List>
-                <Box ref={loaderRef} h="20px"/>
+                <Box ref={loaderRef} height="20px" />
               </Box>
-              </Box>
+            </Box>
           </VStack>
         </ModalBody>
       </ModalContent>
