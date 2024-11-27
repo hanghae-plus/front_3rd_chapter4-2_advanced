@@ -32,8 +32,8 @@ import {
 import { useScheduleContext } from './ScheduleContext.tsx';
 import { Lecture } from './types.ts';
 import { parseSchedule } from "./utils.ts";
-import axios from "axios";
 import { DAY_LABELS } from './constants.ts';
+import { createCachedFetch } from '../lecture/api/cachedAPI.ts';
 
 interface Props {
   searchInfo: {
@@ -83,26 +83,6 @@ const TIME_SLOTS = [
 const PAGE_SIZE = 100;
 
 // 개선된 방식 - 캐시를 사용한 효율적인 API 호출
-type AxiosResponse<T> = { data: T };
-
-const createCachedFetch = <T,>() => {
-  const cache = new Map<string, Promise<AxiosResponse<T>>>();
-  
-  const fetchWithCache = (key: string, fetchFn: () => Promise<AxiosResponse<T>>) => {
-    if (!cache.has(key)) {
-      cache.set(key, fetchFn().then(response => {
-        return response;
-      }));
-    }
-    return cache.get(key)!;
-  };
-
-  return {
-    fetchMajors: () => fetchWithCache('majors', () => axios.get<T>('/schedules-majors.json')),
-    fetchLiberalArts: () => fetchWithCache('liberal', () => axios.get<T>('/schedules-liberal-arts.json'))
-  };
-};
-
 const { fetchMajors, fetchLiberalArts } = createCachedFetch<Lecture[]>();
 const fetchAllLecturesEfficient = async () => {
   // 동일하게 6번 호출하지만, 캐시로 인해 실제로는 2번만 네트워크 요청
