@@ -82,8 +82,29 @@ const TIME_SLOTS = [
 
 const PAGE_SIZE = 100
 
-const fetchMajors = () => axios.get<Lecture[]>("/schedules-majors.json")
-const fetchLiberalArts = () => axios.get<Lecture[]>("/schedules-liberal-arts.json")
+// api 호출 결과를 캐싱하는 함수
+const createCache = () => {
+  const cache: Record<string, any> = {}
+
+  return async (key: string, fetcher: () => Promise<any>) => {
+    if (cache[key]) {
+      // 캐시가 있으면 캐시를 반환
+      return cache[key]
+    }
+    // 캐시가 없으면 API 호출 후 캐시에 저장
+    const data = await fetcher()
+    cache[key] = data
+    return data
+  }
+}
+
+// api 호출 결과를 캐싱하는 함수 생성
+const apiCache = createCache()
+
+const fetchMajors = async () =>
+  await apiCache("majors", () => axios.get<Lecture[]>("/schedules-majors.json"))
+const fetchLiberalArts = async () =>
+  await apiCache("liberalArts", () => axios.get<Lecture[]>("/schedules-liberal-arts.json"))
 
 // TODO: 이 코드를 개선해서 API 호출을 최소화 해보세요 + Promise.all이 현재 잘못 사용되고 있습니다. 같이 개선해주세요.
 // 기존에는 await 으로 각각 호출을 기다리는 형태여서 await을 제거해 병렬 호출로 수정
