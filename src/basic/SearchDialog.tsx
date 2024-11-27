@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -34,6 +34,14 @@ import { Lecture } from './types.ts';
 import { parseSchedule } from './utils.ts';
 import axios, { AxiosResponse } from 'axios';
 import { DAY_LABELS } from './constants.ts';
+import {
+  filterLecturesByQuery,
+  filterLecturesByGrades,
+  filterLecturesByMajors,
+  filterLecturesByCredits,
+  filterLecturesByDays,
+  filterLecturesByTimes,
+} from './utils/searchFilterUtils.ts';
 
 interface Props {
   searchInfo: {
@@ -131,61 +139,71 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     majors: [],
   });
 
-  const getFilteredLectures = () => {
-    const { query = '', credits, grades, days, times, majors } = searchOptions;
-    return lectures
-      .filter(
-        (lecture) =>
-          lecture.title.toLowerCase().includes(query.toLowerCase()) ||
-          lecture.id.toLowerCase().includes(query.toLowerCase())
-      )
-      .filter((lecture) => grades.length === 0 || grades.includes(lecture.grade))
-      .filter((lecture) => majors.length === 0 || majors.includes(lecture.major))
-      .filter((lecture) => !credits || lecture.credits.startsWith(String(credits)))
-      .filter((lecture) => {
-        if (days.length === 0) {
-          return true;
-        }
-        const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
-        return schedules.some((s) => days.includes(s.day));
-      })
-      .filter((lecture) => {
-        if (times.length === 0) {
-          return true;
-        }
-        const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
-        return schedules.some((s) => s.range.some((time) => times.includes(time)));
-      });
-  };
+  const queryFilter = useMemo(() => filterLecturesByQuery(searchOptions.query || ''), [searchOptions.query]);
 
-  const filteredLectures = getFilteredLectures();
-  const lastPage = Math.ceil(filteredLectures.length / PAGE_SIZE);
-  const visibleLectures = filteredLectures.slice(0, page * PAGE_SIZE);
-  const allMajors = [...new Set(lectures.map((lecture) => lecture.major))];
+  const gradesFilter = useMemo(() => 
+    filterLecturesByGrades(searchOptions.grades), 
+    [searchOptions.grades]
+  );
 
-  const changeSearchOption = (field: keyof SearchOption, value: SearchOption[typeof field]) => {
+  const majorsFilter = useMemo(() => 
+    filterLecturesByMajors(searchOptions.majors), 
+    [searchOptions.majors]
+  );
+  const creditsFilter = useMemo(() => 
+    filterLecturesByCredits(searchOptions?.credits || 0), 
+    [searchOptions.credits]
+  );
+  const daysFilter = useMemo(() => 
+    filterLecturesByDays(searchOptions.days), 
+    [searchOptions.days]
+  );
+
+  const timesFilter = useMemo(() => 
+    filterLecturesByTimes(searchOptions.times), 
+    [searchOptions.times]
+  );
+
+  const filteredLectures = useMemo(() => {
+    return lectures.filter(queryFilter).filter(gradesFilter).filter(majorsFilter).filter(creditsFilter).filter(daysFilter).filter(timesFilter);
+  }, [lectures, queryFilter, gradesFilter, majorsFilter, creditsFilter, daysFilter, timesFilter]);
+
+  const lastPage = useMemo(() => Math.ceil(filteredLectures.length / PAGE_SIZE), [filteredLectures.length]);
+
+  const visibleLectures = useMemo(() => 
+    filteredLectures.slice(0, page * PAGE_SIZE), 
+    [filteredLectures, page]
+  );
+
+  const allMajors = useMemo(() => 
+    [...new Set(lectures.map(lecture => lecture?.major))], 
+    [lectures]
+  );
+
+  const changeSearchOption = useCallback((
+    field: keyof SearchOption, 
+    value: SearchOption[typeof field]
+  ) => {
     setPage(1);
-    setSearchOptions({ ...searchOptions, [field]: value });
+    setSearchOptions(prev => ({ ...prev, [field]: value }));
     loaderWrapperRef.current?.scrollTo(0, 0);
-  };
+  }, []);
 
-  const addSchedule = (lecture: Lecture) => {
+  const addSchedule = useCallback((lecture: Lecture) => {
     if (!searchInfo) return;
-
     const { tableId } = searchInfo;
-
-    const schedules = parseSchedule(lecture.schedule).map((schedule) => ({
+    const schedules = parseSchedule(lecture?.schedule).map(schedule => ({
       ...schedule,
-      lecture,
+      lecture
     }));
 
-    setSchedulesMap((prev) => ({
+    setSchedulesMap(prev => ({
       ...prev,
-      [tableId]: [...prev[tableId], ...schedules],
+      [tableId]: [...prev[tableId], ...schedules]
     }));
 
     onClose();
-  };
+  }, [searchInfo, setSchedulesMap, onClose]);
 
   useEffect(() => {
     const start = performance.now();
