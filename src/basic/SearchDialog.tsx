@@ -29,7 +29,7 @@ import {
   Wrap,
 } from "@chakra-ui/react";
 import axios from "axios";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DAY_LABELS } from "./constants.ts";
 import { useScheduleContext } from "./ScheduleContext.tsx";
 import { Lecture } from "./types.ts";
@@ -137,12 +137,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     majors: [],
   });
 
-  // TODO: 아직 불필요한 재계산이 진행되고있음 -> 의존성의 참조값이 변경되어서 그렇다!
   const filteredLectures = useMemo(() => {
-    console.log("filteredLectures 계산 시작", {
-      searchOptions,
-      lectures,
-    });
     const { query = "", credits, grades, days, times, majors } = searchOptions;
     return lectures
       .filter(
@@ -180,27 +175,27 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
         );
       });
   }, [lectures, searchOptions]);
-
-  const lastPage = useMemo(
-    () => Math.ceil(filteredLectures.length / PAGE_SIZE),
-    [filteredLectures]
-  );
-
+  const lastPage = useMemo(() => {
+    console.log("lastPage 계산 시작", {
+      filteredLectures,
+      PAGE_SIZE,
+    });
+    return Math.ceil(filteredLectures.length / PAGE_SIZE);
+  }, [filteredLectures]);
   const visibleLectures = useMemo(
     () => filteredLectures.slice(0, page * PAGE_SIZE),
     [filteredLectures, page]
   );
-
   const allMajors = [...new Set(lectures.map((lecture) => lecture.major))];
 
-  const changeSearchOption = (
-    field: keyof SearchOption,
-    value: SearchOption[typeof field]
-  ) => {
-    setPage(1);
-    setSearchOptions({ ...searchOptions, [field]: value });
-    loaderWrapperRef.current?.scrollTo(0, 0);
-  };
+  const changeSearchOption = useCallback(
+    (field: keyof SearchOption, value: SearchOption[typeof field]) => {
+      setPage(1);
+      setSearchOptions((prev) => ({ ...prev, [field]: value }));
+      loaderWrapperRef.current?.scrollTo(0, 0);
+    },
+    []
+  );
 
   const addSchedule = (lecture: Lecture) => {
     if (!searchInfo) return;
