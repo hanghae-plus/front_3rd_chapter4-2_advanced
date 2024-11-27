@@ -1,17 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
-  FormControl,
-  FormLabel,
   HStack,
-  Input,
   Modal,
   ModalBody,
   ModalCloseButton,
   ModalContent,
   ModalHeader,
   ModalOverlay,
-  Select,
   Table,
   Tbody,
   Text,
@@ -30,6 +26,8 @@ import { matchCredit, matchesSchedule, matchGrade, matchLectureQuery, matchMajor
 import { FilterCheckboxGroup } from '../search/ui/FilterCheckboxGroup.tsx';
 import { ComplexFilterGroup } from '../search/ui/ComplexFilterGroup.tsx';
 import { DAY_OPTIONS, GRADE_OPTIONS, TIME_SLOTS } from '../search/model/constants.ts';
+import { SearchInput } from '../search/ui/SearchInput.tsx';
+import { CreditSelect } from '../search/ui/CreditSelect.tsx';
 
 interface Props {
   searchInfo: {
@@ -172,27 +170,14 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
         <ModalBody>
           <VStack spacing={4} align="stretch">
             <HStack spacing={4}>
-              <FormControl>
-                <FormLabel>검색어</FormLabel>
-                <Input
-                  placeholder="과목명 또는 과목코드"
-                  value={searchOptions.query}
-                  onChange={(e) => changeSearchOption('query', e.target.value)}
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>학점</FormLabel>
-                <Select
-                  value={searchOptions.credits}
-                  onChange={(e) => changeSearchOption('credits', e.target.value)}
-                >
-                  <option value="">전체</option>
-                  <option value="1">1학점</option>
-                  <option value="2">2학점</option>
-                  <option value="3">3학점</option>
-                </Select>
-              </FormControl>
+              <SearchInput
+                value={searchOptions.query}
+                onChange={(value) => changeSearchOption('query', value)}
+              />
+              <CreditSelect
+                value={searchOptions.credits}
+                onChange={(value) => changeSearchOption('credits', value)}
+              />
             </HStack>
 
             <HStack spacing={4}>
