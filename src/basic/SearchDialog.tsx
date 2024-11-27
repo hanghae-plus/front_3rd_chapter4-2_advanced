@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -89,7 +89,6 @@ const fetchLiberalArts = () => axios.get<Lecture[]>('/schedules-liberal-arts.jso
 // await를 배열 내부에서 사용해서 발생하는 문제 -> 시작된 Promise를 모아서 실행시켜보기
 // 중복호출문제 -> 캐싱, 클로저
 const createApiCache = () => {
-  // 캐시 저장소
   const cache: {
     majors?: Promise<any>;
     liberalArts?: Promise<any>;
@@ -132,6 +131,7 @@ const fetchAllLectures = async () => {
 }
 
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
+// useMemo와 useCallback 사용해보기
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
   const { setSchedulesMap } = useScheduleContext();
 
@@ -147,7 +147,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     majors: [],
   });
 
-  const getFilteredLectures = () => {
+  const getFilteredLectures = useCallback(() => {
     const { query = '', credits, grades, days, times, majors } = searchOptions;
     return lectures
       .filter(lecture =>
@@ -171,12 +171,20 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
         const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
         return schedules.some(s => s.range.some(time => times.includes(time)));
       });
-  }
+  }, [lectures, searchOptions])
 
-  const filteredLectures = getFilteredLectures();
-  const lastPage = Math.ceil(filteredLectures.length / PAGE_SIZE);
-  const visibleLectures = filteredLectures.slice(0, page * PAGE_SIZE);
-  const allMajors = [...new Set(lectures.map(lecture => lecture.major))];
+
+
+  const filteredLectures = useMemo(() => getFilteredLectures(), [getFilteredLectures]);
+  const lastPage = useMemo(() => Math.ceil(filteredLectures.length / PAGE_SIZE), [filteredLectures.length]);
+  const visibleLectures = useMemo(() => 
+    filteredLectures.slice(0, page * PAGE_SIZE), 
+    [filteredLectures, page]
+  );
+  const allMajors = useMemo(() => 
+    [...new Set(lectures.map(lecture => lecture.major))], 
+    [lectures]
+  );
 
   const changeSearchOption = (field: keyof SearchOption, value: SearchOption[typeof field]) => {
     setPage(1);
