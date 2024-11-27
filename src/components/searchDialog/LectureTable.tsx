@@ -1,7 +1,7 @@
 import { Box, Button, Table, Tbody, Td, Th, Thead, Tr } from "@chakra-ui/react";
-import { Lecture } from "../basic/types";
-import { parseSchedule } from "../basic/utils";
-import { useScheduleContext } from "../basic/ScheduleContext";
+import { Lecture } from "../../basic/types";
+import { parseSchedule } from "../../basic/utils";
+import { useScheduleContext } from "../../basic/ScheduleContext";
 import { memo, useCallback } from "react";
 
 interface Props {

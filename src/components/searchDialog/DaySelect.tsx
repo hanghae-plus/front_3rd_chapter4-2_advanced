@@ -1,5 +1,5 @@
 import { Checkbox, CheckboxGroup, FormControl, FormLabel, HStack } from "@chakra-ui/react";
-import { DAY_LABELS } from "../basic/constants";
+import { DAY_LABELS } from "../../basic/constants";
 import { memo } from "react";
 
 interface Props {

@@ -13,13 +13,13 @@ import {
 import { Lecture, SearchOption } from "./types.ts";
 import { parseSchedule } from "./utils.ts";
 import axios, { AxiosResponse } from "axios";
-import DaySelect from "../components/DaySelect.tsx";
-import SearchInput from "../components/SearchInput.tsx";
-import CreditSelect from "../components/CreditSelect.tsx";
-import GradeSelect from "../components/GradeSelect.tsx";
-import MajorSelect from "../components/MajorSelect.tsx";
-import TimeSelect from "../components/TimeSelect.tsx";
-import LectureTable from "../components/LectureTable.tsx";
+import DaySelect from "../components/searchDialog/DaySelect.tsx";
+import SearchInput from "../components/searchDialog/SearchInput.tsx";
+import CreditSelect from "../components/searchDialog/CreditSelect.tsx";
+import GradeSelect from "../components/searchDialog/GradeSelect.tsx";
+import MajorSelect from "../components/searchDialog/MajorSelect.tsx";
+import TimeSelect from "../components/searchDialog/TimeSelect.tsx";
+import LectureTable from "../components/searchDialog/LectureTable.tsx";
 
 interface Props {
 	searchInfo: {
