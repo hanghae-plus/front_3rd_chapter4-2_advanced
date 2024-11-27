@@ -27,8 +27,9 @@ import { ComplexFilterGroup } from '../search/ui/ComplexFilterGroup.tsx';
 import { DAY_OPTIONS, GRADE_OPTIONS, TIME_SLOTS } from '../search/model/constants.ts';
 import { SearchInput } from '../search/ui/SearchInput.tsx';
 import { CreditSelect } from '../search/ui/CreditSelect.tsx';
-import { useFilteredLectures } from '../hooks/useFilteredLecture.ts';
-import { useInfiniteScroll } from '../hooks/useInfiniteScroll.ts';
+import { useFilteredLectures } from '../lecture/model/useFilteredLecture.ts';
+import { useInfiniteScroll } from '../page/model/useInfiniteScroll.ts';
+import { SearchOption } from '../search/model/Search.ts';
 
 interface Props {
   searchInfo: {
@@ -37,15 +38,6 @@ interface Props {
     time?: number;
   } | null;
   onClose: () => void;
-}
-
-interface SearchOption {
-  query?: string,
-  grades: number[],
-  days: string[],
-  times: number[],
-  majors: string[],
-  credits?: number,
 }
 
 // 개선된 방식 - 캐시를 사용한 효율적인 API 호출

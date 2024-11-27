@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import { matchCredit, matchesSchedule, matchGrade, matchLectureQuery, matchMajor } from "../lecture/model/Lecture";
-import { Lecture } from "../basic/types";
+import { matchCredit, matchesSchedule, matchGrade, matchLectureQuery, matchMajor } from "./Lecture";
+import { Lecture } from "../../basic/types";
+import { SearchOption } from "../../search/model/Search";
 
 export const useFilteredLectures = (lectures: Lecture[], searchOptions: SearchOption) => {
   return useMemo(() => {
