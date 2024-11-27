@@ -12,57 +12,68 @@ const TimeTable = memo(({
   schedules, 
   index, 
   disabledRemoveButton,
+  onUpdateSchedules,
   onSearchClick,
   onDuplicate,
   onRemove,
-  onScheduleTimeClick,
-  onDeleteSchedule
 }: {
   tableId: string;
   schedules: Schedule[];
   index: number;
   disabledRemoveButton: boolean;
-  onSearchClick: (tableId: string) => void;
+  onUpdateSchedules: (tableId: string, updater: (schedules: Schedule[]) => Schedule[]) => void;
+  onSearchClick: (tableId: string, timeInfo?: { day: string; time: number }) => void;
   onDuplicate: (tableId: string) => void;
   onRemove: (tableId: string) => void;
-  onScheduleTimeClick: (tableId: string, timeInfo: { day: string; time: number }) => void;
-  onDeleteSchedule: (tableId: string, info: { day: string; time: number }) => void;
-}) => (
-  <Stack width="600px">
-    <Flex justifyContent="space-between" alignItems="center">
-      <Heading as="h3" fontSize="lg">시간표 {index + 1}</Heading>
-      <ButtonGroup size="sm" isAttached>
-        <Button 
-          colorScheme="green" 
-          onClick={() => onSearchClick(tableId)}
-        >
-          시간표 추가
-        </Button>
-        <Button 
-          colorScheme="green" 
-          mx="1px" 
-          onClick={() => onDuplicate(tableId)}
-        >
-          복제
-        </Button>
-        <Button 
-          colorScheme="green" 
-          isDisabled={disabledRemoveButton}
-          onClick={() => onRemove(tableId)}
-        >
-          삭제
-        </Button>
-      </ButtonGroup>
-    </Flex>
-    <ScheduleTable
-      key={`schedule-table-${index}`}
-      schedules={schedules}
-      tableId={tableId}
-      onScheduleTimeClick={(timeInfo) => onScheduleTimeClick(tableId, timeInfo)}
-      onDeleteButtonClick={(timeInfo) => onDeleteSchedule(tableId, timeInfo)}
-    />
-  </Stack>
-));
+}) => {
+  const handleScheduleTimeClick = useCallback((timeInfo: { day: string; time: number }) => {
+    onSearchClick(tableId, timeInfo);
+  }, [tableId, onSearchClick]);
+
+  const handleDeleteSchedule = useCallback(({ day, time }: { day: string; time: number }) => {
+    onUpdateSchedules(tableId, (schedules) => 
+      schedules.filter(schedule => 
+        schedule.day !== day || !schedule.range.includes(time)
+      )
+    );
+  }, [tableId, onUpdateSchedules]);
+
+  return (
+    <Stack width="600px">
+      <Flex justifyContent="space-between" alignItems="center">
+        <Heading as="h3" fontSize="lg">시간표 {index + 1}</Heading>
+        <ButtonGroup size="sm" isAttached>
+          <Button 
+            colorScheme="green" 
+            onClick={() => onSearchClick(tableId)}
+          >
+            시간표 추가
+          </Button>
+          <Button 
+            colorScheme="green" 
+            mx="1px" 
+            onClick={() => onDuplicate(tableId)}
+          >
+            복제
+          </Button>
+          <Button 
+            colorScheme="green" 
+            isDisabled={disabledRemoveButton}
+            onClick={() => onRemove(tableId)}
+          >
+            삭제
+          </Button>
+        </ButtonGroup>
+      </Flex>
+      <ScheduleTable
+        schedules={schedules}
+        tableId={tableId}
+        onScheduleTimeClick={handleScheduleTimeClick}
+        onDeleteButtonClick={handleDeleteSchedule}
+      />
+    </Stack>
+  );
+});
 
 export const ScheduleTables = () => {
   const { schedulesMap, setSchedulesMap } = useScheduleContext();
@@ -77,7 +88,16 @@ export const ScheduleTables = () => {
     [schedulesMap]
   );
 
-  // 이벤트 핸들러들 메모이제이션
+  const updateSchedules = useCallback((
+    tableId: string, 
+    updater: (schedules: Schedule[]) => Schedule[]
+  ) => {
+    setSchedulesMap(prev => ({
+      ...prev,
+      [tableId]: updater(prev[tableId])
+    }));
+  }, [setSchedulesMap]);
+
   const handleDuplicate = useCallback((targetId: string) => {
     setSchedulesMap(prev => ({
       ...prev,
@@ -97,19 +117,6 @@ export const ScheduleTables = () => {
     setSearchInfo({ tableId });
   }, []);
 
-  const handleScheduleTimeClick = useCallback((tableId: string, timeInfo: { day: string; time: number }) => {
-    setSearchInfo({ tableId, ...timeInfo });
-  }, []);
-
-  const handleDeleteSchedule = useCallback((tableId: string, { day, time }: { day: string; time: number }) => {
-    setSchedulesMap((prev) => ({
-      ...prev,
-      [tableId]: prev[tableId].filter(
-        schedule => schedule.day !== day || !schedule.range.includes(time)
-      )
-    }));
-  }, [setSchedulesMap]);
-
   const handleCloseSearch = useCallback(() => {
     setSearchInfo(null);
   }, []);
@@ -123,21 +130,19 @@ export const ScheduleTables = () => {
         schedules={schedules}
         index={index}
         disabledRemoveButton={disabledRemoveButton}
+        onUpdateSchedules={updateSchedules}
         onSearchClick={handleSearchClick}
         onDuplicate={handleDuplicate}
         onRemove={handleRemove}
-        onScheduleTimeClick={handleScheduleTimeClick}
-        onDeleteSchedule={handleDeleteSchedule}
       />
     )),
     [
       schedulesMap,
       disabledRemoveButton,
+      updateSchedules,
       handleSearchClick,
       handleDuplicate,
       handleRemove,
-      handleScheduleTimeClick,
-      handleDeleteSchedule
     ]
   );
 
