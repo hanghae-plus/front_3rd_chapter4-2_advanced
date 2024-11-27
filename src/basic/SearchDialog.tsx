@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -126,7 +126,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     loaderWrapperRef.current?.scrollTo(0, 0);
   }, []);
 
-  const addSchedule = (lecture: Lecture) => {
+  const handleAddSchedule = useCallback((lecture: Lecture) => {
     if (!searchInfo) return;
 
     const { tableId } = searchInfo;
@@ -142,7 +142,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     }));
 
     onClose();
-  };
+  }, [searchInfo, setSchedulesMap, onClose]);
 
   useEffect(() => {
     const start = performance.now();
@@ -222,17 +222,11 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                 <Table size="sm" variant="striped">
                   <Tbody>
                     {visibleLectures.map((lecture, index) => (
-                      <Tr key={`${lecture.id}-${index}`}>
-                        <Td width="100px">{lecture.id}</Td>
-                        <Td width="50px">{lecture.grade}</Td>
-                        <Td width="200px">{lecture.title}</Td>
-                        <Td width="50px">{lecture.credits}</Td>
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.major }}/>
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.schedule }}/>
-                        <Td width="80px">
-                          <Button size="sm" colorScheme="green" onClick={() => addSchedule(lecture)}>추가</Button>
-                        </Td>
-                      </Tr>
+                      <LectureRow 
+                        key={`${lecture.id}-${index}`}
+                        lecture={lecture}
+                        onAddSchedule={handleAddSchedule}
+                      />
                     ))}
                   </Tbody>
                 </Table>
@@ -247,3 +241,33 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
 };
 
 export default SearchDialog;
+
+const LectureRow = memo(({ 
+  lecture, 
+  onAddSchedule 
+}: { 
+  lecture: Lecture; 
+  onAddSchedule: (lecture: Lecture) => void; 
+}) => {
+  const handleClick = () => onAddSchedule(lecture);
+
+  return (
+    <Tr>
+      <Td width="100px">{lecture.id}</Td>
+      <Td width="50px">{lecture.grade}</Td>
+      <Td width="200px">{lecture.title}</Td>
+      <Td width="50px">{lecture.credits}</Td>
+      <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.major }}/>
+      <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.schedule }}/>
+      <Td width="80px">
+        <Button 
+          size="sm" 
+          colorScheme="green" 
+          onClick={handleClick}
+        >
+          추가
+        </Button>
+      </Td>
+    </Tr>
+  );
+});
