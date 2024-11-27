@@ -62,6 +62,40 @@ const fetchAllLecturesEfficient = async () => {
   return results;
 };
 
+const useFilteredLectures = (lectures: Lecture[], searchOptions: SearchOption) => {
+  return useMemo(() => {
+    const { query = '', credits, grades, days, times, majors } = searchOptions;
+
+    // 1. 가장 빈번하게 사용되는 필터부터 적용
+    let filtered = lectures;
+
+    // 2. 단순 비교 필터를 먼저 적용 (연산 비용이 적은 순서대로)
+    if (credits) {
+      filtered = filtered.filter(lecture => matchCredit(lecture.credits, credits));
+    }
+
+    if (grades.length > 0) {
+      filtered = filtered.filter(lecture => matchGrade(lecture.grade, grades));
+    }
+
+    if (majors.length > 0) {
+      filtered = filtered.filter(lecture => matchMajor(lecture.major, majors));
+    }
+
+    // 3. 문자열 검색 필터 적용
+    if (query) {
+      filtered = filtered.filter(lecture => matchLectureQuery(lecture, query));
+    }
+
+    // 4. 가장 복잡한 연산인 시간표 필터를 마지막에 적용
+    if (days.length > 0 || times.length > 0) {
+      filtered = filtered.filter(lecture => matchesSchedule(lecture.schedule, days, times));
+    }
+
+    return filtered;
+  }, [lectures, searchOptions]);
+};
+
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
   const { setSchedulesMap } = useScheduleContext();
@@ -79,14 +113,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
   });
 
   // 새로운 메모이제이션 코드 추가
-  const filteredLectures = useMemo(() => {
-    const { query = '', credits, grades, days, times, majors } = searchOptions;
-    return lectures.filter(lecture => matchLectureQuery(lecture, query) &&
-        matchGrade(lecture.grade, grades) &&
-        matchMajor(lecture.major, majors) &&
-        matchCredit(lecture.credits, credits) &&
-        matchesSchedule(lecture.schedule, days, times));
-  }, [lectures, searchOptions]); // lectures나 searchOptions가 변경될 때만 재계산
+  const filteredLectures = useFilteredLectures(lectures, searchOptions);
 
   const lastPage = useMemo(() => 
     Math.ceil(filteredLectures.length / PAGE_SIZE)
@@ -199,23 +226,23 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
             </HStack>
 
             <HStack spacing={4}>
-            <ComplexFilterGroup
-              label="시간"
-              options={TIME_SLOTS}
-              value={searchOptions.times}
-              onChange={(values) => changeSearchOption('times', values.map(Number))}
-              tagLabelFormatter={(time) => `${time}교시`}
-              checkboxLabelFormatter={(option) => `${option.id}교시(${option.label})`}
-            />
+              <ComplexFilterGroup
+                label="시간"
+                options={TIME_SLOTS}
+                value={searchOptions.times}
+                onChange={(values) => changeSearchOption('times', values.map(Number))}
+                tagLabelFormatter={(time) => `${time}교시`}
+                checkboxLabelFormatter={(option) => `${option.id}교시(${option.label})`}
+              />
 
-            <ComplexFilterGroup
-              label="전공"
-              options={allMajors.map(major => ({ id: major, label: major }))}
-              value={searchOptions.majors}
-              onChange={(values) => changeSearchOption('majors', values as string[])}
-              tagLabelFormatter={(major) => String(major).split("<p>").pop() || ''}
-              checkboxLabelFormatter={(option) => option.label.replace(/<p>/gi, ' ')}
-            />
+              <ComplexFilterGroup
+                label="전공"
+                options={allMajors.map(major => ({ id: major, label: major }))}
+                value={searchOptions.majors}
+                onChange={(values) => changeSearchOption('majors', values as string[])}
+                tagLabelFormatter={(major) => String(major).split("<p>").pop() || ''}
+                checkboxLabelFormatter={(option) => option.label.replace(/<p>/gi, ' ')}
+              />
             </HStack>
             <Text align="right">
               검색결과: {filteredLectures.length}개
