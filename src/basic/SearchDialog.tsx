@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
-  Button,
-  Checkbox,
-  CheckboxGroup,
   FormControl,
   FormLabel,
   HStack,
@@ -15,19 +12,13 @@ import {
   ModalHeader,
   ModalOverlay,
   Select,
-  Stack,
   Table,
-  Tag,
-  TagCloseButton,
-  TagLabel,
   Tbody,
-  Td,
   Text,
   Th,
   Thead,
   Tr,
   VStack,
-  Wrap,
 } from '@chakra-ui/react';
 import { useScheduleContext } from './ScheduleContext.tsx';
 import { Lecture } from './types.ts';
@@ -37,6 +28,8 @@ import { LectureTableRow } from '../lecture/ui/LectureTableRow.tsx';
 import { PAGE_SIZE } from '../page/model/constants.ts';
 import { createCachedFetch } from '../lecture/api/cachedAPI.ts';
 import { matchCredit, matchesSchedule, matchGrade, matchLectureQuery, matchMajor } from '../lecture/model/Lecture.ts';
+import { FilterCheckboxGroup } from '../search/ui/FilterCheckboxGroup.tsx';
+import { ComplexFilterGroup } from '../search/ui/ComplexFilterGroup.tsx';
 
 interface Props {
   searchInfo: {
@@ -83,7 +76,17 @@ const TIME_SLOTS = [
   { id: 24, label: "22:35~23:25" },
 ];
 
-const PAGE_SIZE = 100;
+const GRADE_OPTIONS = [
+  { id: 1, label: '1학년' },
+  { id: 2, label: '2학년' },
+  { id: 3, label: '3학년' },
+  { id: 4, label: '4학년' },
+];
+
+const DAY_OPTIONS = DAY_LABELS.map(day => ({
+  id: day,
+  label: day
+}));
 
 // 개선된 방식 - 캐시를 사용한 효율적인 API 호출
 const { fetchMajors, fetchLiberalArts } = createCachedFetch<Lecture[]>();
@@ -232,93 +235,41 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
             </HStack>
 
             <HStack spacing={4}>
-              <FormControl>
-                <FormLabel>학년</FormLabel>
-                <CheckboxGroup
-                  value={searchOptions.grades}
-                  onChange={(value) => changeSearchOption('grades', value.map(Number))}
-                >
-                  <HStack spacing={4}>
-                    {[1, 2, 3, 4].map(grade => (
-                      <Checkbox key={grade} value={grade}>{grade}학년</Checkbox>
-                    ))}
-                  </HStack>
-                </CheckboxGroup>
-              </FormControl>
+              <FilterCheckboxGroup
+                label="학년"
+                name="grades"
+                options={GRADE_OPTIONS}
+                value={searchOptions.grades}
+                onChange={(values) => changeSearchOption('grades', values.map(Number))}
+              />
 
-              <FormControl>
-                <FormLabel>요일</FormLabel>
-                <CheckboxGroup
-                  value={searchOptions.days}
-                  onChange={(value) => changeSearchOption('days', value as string[])}
-                >
-                  <HStack spacing={4}>
-                    {DAY_LABELS.map(day => (
-                      <Checkbox key={day} value={day}>{day}</Checkbox>
-                    ))}
-                  </HStack>
-                </CheckboxGroup>
-              </FormControl>
+              <FilterCheckboxGroup
+                label="요일"
+                name="days"
+                options={DAY_OPTIONS}
+                value={searchOptions.days}
+                onChange={(values) => changeSearchOption('days', values as string[])}
+              />
             </HStack>
 
             <HStack spacing={4}>
-              <FormControl>
-                <FormLabel>시간</FormLabel>
-                <CheckboxGroup
-                  colorScheme="green"
-                  value={searchOptions.times}
-                  onChange={(values) => changeSearchOption('times', values.map(Number))}
-                >
-                  <Wrap spacing={1} mb={2}>
-                    {searchOptions.times.sort((a, b) => a - b).map(time => (
-                      <Tag key={time} size="sm" variant="outline" colorScheme="blue">
-                        <TagLabel>{time}교시</TagLabel>
-                        <TagCloseButton
-                          onClick={() => changeSearchOption('times', searchOptions.times.filter(v => v !== time))}/>
-                      </Tag>
-                    ))}
-                  </Wrap>
-                  <Stack spacing={2} overflowY="auto" h="100px" border="1px solid" borderColor="gray.200"
-                         borderRadius={5} p={2}>
-                    {TIME_SLOTS.map(({ id, label }) => (
-                      <Box key={id}>
-                        <Checkbox key={id} size="sm" value={id}>
-                          {id}교시({label})
-                        </Checkbox>
-                      </Box>
-                    ))}
-                  </Stack>
-                </CheckboxGroup>
-              </FormControl>
+            <ComplexFilterGroup
+              label="시간"
+              options={TIME_SLOTS}
+              value={searchOptions.times}
+              onChange={(values) => changeSearchOption('times', values.map(Number))}
+              tagLabelFormatter={(time) => `${time}교시`}
+              checkboxLabelFormatter={(option) => `${option.id}교시(${option.label})`}
+            />
 
-              <FormControl>
-                <FormLabel>전공</FormLabel>
-                <CheckboxGroup
-                  colorScheme="green"
-                  value={searchOptions.majors}
-                  onChange={(values) => changeSearchOption('majors', values as string[])}
-                >
-                  <Wrap spacing={1} mb={2}>
-                    {searchOptions.majors.map(major => (
-                      <Tag key={major} size="sm" variant="outline" colorScheme="blue">
-                        <TagLabel>{major.split("<p>").pop()}</TagLabel>
-                        <TagCloseButton
-                          onClick={() => changeSearchOption('majors', searchOptions.majors.filter(v => v !== major))}/>
-                      </Tag>
-                    ))}
-                  </Wrap>
-                  <Stack spacing={2} overflowY="auto" h="100px" border="1px solid" borderColor="gray.200"
-                         borderRadius={5} p={2}>
-                    {allMajors.map(major => (
-                      <Box key={major}>
-                        <Checkbox key={major} size="sm" value={major}>
-                          {major.replace(/<p>/gi, ' ')}
-                        </Checkbox>
-                      </Box>
-                    ))}
-                  </Stack>
-                </CheckboxGroup>
-              </FormControl>
+            <ComplexFilterGroup
+              label="전공"
+              options={allMajors.map(major => ({ id: major, label: major }))}
+              value={searchOptions.majors}
+              onChange={(values) => changeSearchOption('majors', values as string[])}
+              tagLabelFormatter={(major) => String(major).split("<p>").pop() || ''}
+              checkboxLabelFormatter={(option) => option.label.replace(/<p>/gi, ' ')}
+            />
             </HStack>
             <Text align="right">
               검색결과: {filteredLectures.length}개
