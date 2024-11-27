@@ -130,7 +130,7 @@ const fetchAllLectures = async () => {
   ]);
 }
 
-// 랜더링 개선
+// 랜더링 개선 1차 - 전공목록 분리와 memo
 const MajorCheckbox = memo(({ major, checked, onChange }: {
   major: string;
   checked: boolean;
@@ -206,6 +206,56 @@ const MajorSection = memo(({
     </FormControl>
   );
 });
+
+// 랜더링 개선 2차 - 강의목록 분리와 memo
+const LectureRow = memo(({ lecture, onAdd }: { 
+  lecture: Lecture; 
+  onAdd: (lecture: Lecture) => void; 
+}) => (
+  <Tr>
+    <Td width="100px">{lecture.id}</Td>
+    <Td width="50px">{lecture.grade}</Td>
+    <Td width="200px">{lecture.title}</Td>
+    <Td width="50px">{lecture.credits}</Td>
+    <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.major }}/>
+    <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.schedule }}/>
+    <Td width="80px">
+      <Button 
+        size="sm" 
+        colorScheme="green" 
+        onClick={() => onAdd(lecture)}
+      >
+        추가
+      </Button>
+    </Td>
+  </Tr>
+));
+
+// 강의 테이블 컴포넌트
+const LectureTable = memo(({ 
+  lectures, 
+  onAdd,
+  loaderRef 
+}: {
+  lectures: Lecture[];
+  onAdd: (lecture: Lecture) => void;
+  loaderRef: React.RefObject<HTMLDivElement>;
+}) => (
+  <>
+    <Table size="sm" variant="striped">
+      <Tbody>
+        {lectures.map((lecture, index) => (
+          <LectureRow
+            key={`${lecture.id}-${index}`}
+            lecture={lecture}
+            onAdd={onAdd}
+          />
+        ))}
+      </Tbody>
+    </Table>
+    <Box ref={loaderRef} h="20px"/>
+  </>
+));
 
 
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
@@ -441,6 +491,8 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
             <Text align="right">
               검색결과: {filteredLectures.length}개
             </Text>
+
+
             <Box>
               <Table>
                 <Thead>
@@ -457,26 +509,15 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
               </Table>
 
               <Box overflowY="auto" maxH="500px" ref={loaderWrapperRef}>
-                <Table size="sm" variant="striped">
-                  <Tbody>
-                    {visibleLectures.map((lecture, index) => (
-                      <Tr key={`${lecture.id}-${index}`}>
-                        <Td width="100px">{lecture.id}</Td>
-                        <Td width="50px">{lecture.grade}</Td>
-                        <Td width="200px">{lecture.title}</Td>
-                        <Td width="50px">{lecture.credits}</Td>
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.major }}/>
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.schedule }}/>
-                        <Td width="80px">
-                          <Button size="sm" colorScheme="green" onClick={() => addSchedule(lecture)}>추가</Button>
-                        </Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
-                <Box ref={loaderRef} h="20px"/>
+                <LectureTable
+                  lectures={visibleLectures}
+                  onAdd={addSchedule}
+                  loaderRef={loaderRef}
+                />
               </Box>
             </Box>
+
+
           </VStack>
         </ModalBody>
       </ModalContent>
