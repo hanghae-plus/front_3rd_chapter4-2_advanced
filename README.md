@@ -46,3 +46,5 @@
     ![alt text](images/drag_added_after.png)
   - 실제 `drag` 했을 때
     ![alt text](images/drag_added_after_2.png)
+  https://github.com/user-attachments/assets/e0c3ad78-1ec9-4b2e-844d-d42923152f2f
+
