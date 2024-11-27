@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -153,7 +153,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     majors: [],
   });
 
-  const getFilteredLectures = () => {
+  const getFilteredLectures = useMemo(() => {
     const { query = '', credits, grades, days, times, majors } = searchOptions;
     return lectures
       .filter(lecture =>
@@ -164,33 +164,28 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
       .filter(lecture => majors.length === 0 || majors.includes(lecture.major))
       .filter(lecture => !credits || lecture.credits.startsWith(String(credits)))
       .filter(lecture => {
-        if (days.length === 0) {
-          return true;
-        }
+        if (days.length === 0) return true;
         const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
         return schedules.some(s => days.includes(s.day));
       })
       .filter(lecture => {
-        if (times.length === 0) {
-          return true;
-        }
+        if (times.length === 0) return true;
         const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
         return schedules.some(s => s.range.some(time => times.includes(time)));
       });
-  }
+  }, [lectures, searchOptions]);
 
-  const filteredLectures = getFilteredLectures();
-  const lastPage = Math.ceil(filteredLectures.length / PAGE_SIZE);
-  const visibleLectures = filteredLectures.slice(0, page * PAGE_SIZE);
-  const allMajors = [...new Set(lectures.map(lecture => lecture.major))];
+  const lastPage = useMemo(() => Math.ceil(getFilteredLectures.length / PAGE_SIZE), [getFilteredLectures.length]);
+  const visibleLectures = useMemo(() => getFilteredLectures.slice(0, page * PAGE_SIZE), [getFilteredLectures, page]);
+  const allMajors = useMemo(() => [...new Set(lectures.map(lecture => lecture.major))], [lectures]);
 
-  const changeSearchOption = (field: keyof SearchOption, value: SearchOption[typeof field]) => {
+  const changeSearchOption = useCallback((field: keyof SearchOption, value: SearchOption[typeof field]) => {
     setPage(1);
-    setSearchOptions(({ ...searchOptions, [field]: value }));
+    setSearchOptions(prev => ({ ...prev, [field]: value }));
     loaderWrapperRef.current?.scrollTo(0, 0);
-  };
+  }, []);
 
-  const addSchedule = (lecture: Lecture) => {
+  const addSchedule = useCallback((lecture: Lecture) => {
     if (!searchInfo) return;
 
     const { tableId } = searchInfo;
@@ -206,7 +201,8 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     }));
 
     onClose();
-  };
+  }, [searchInfo, setSchedulesMap, onClose]);
+
 
   useEffect(() => {
     const start = performance.now();
@@ -330,7 +326,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                     ))}
                   </Wrap>
                   <Stack spacing={2} overflowY="auto" h="100px" border="1px solid" borderColor="gray.200"
-                         borderRadius={5} p={2}>
+                        borderRadius={5} p={2}>
                     {TIME_SLOTS.map(({ id, label }) => (
                       <Box key={id}>
                         <Checkbox key={id} size="sm" value={id}>
@@ -359,7 +355,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                     ))}
                   </Wrap>
                   <Stack spacing={2} overflowY="auto" h="100px" border="1px solid" borderColor="gray.200"
-                         borderRadius={5} p={2}>
+                        borderRadius={5} p={2}>
                     {allMajors.map(major => (
                       <Box key={major}>
                         <Checkbox key={major} size="sm" value={major}>
@@ -372,7 +368,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
               </FormControl>
             </HStack>
             <Text align="right">
-              검색결과: {filteredLectures.length}개
+              검색결과: {getFilteredLectures.length}개
             </Text>
             <Box>
               <Table>
