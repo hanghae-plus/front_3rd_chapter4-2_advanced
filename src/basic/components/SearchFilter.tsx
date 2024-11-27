@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback } from 'react';
 import {
   Box,
   Checkbox,
@@ -33,10 +33,6 @@ interface Props {
 }
 
 const SearchFilter = memo(({ searchOptions, onChangeOption, allMajors }: Props) => {
-  const sortedTimes = useMemo(() => {
-    return [...searchOptions.times].sort((a, b) => a - b);
-  }, [searchOptions.times]);
-
   const handleChangeTimes = useCallback((values: (string | number)[]) => {
     onChangeOption('times', values.map(Number))
   }, [onChangeOption])
@@ -131,7 +127,7 @@ const SearchFilter = memo(({ searchOptions, onChangeOption, allMajors }: Props) 
 					>
 						<Wrap spacing={1} mb={2}>
               <TimeTagList 
-                times={sortedTimes}
+                times={searchOptions.times.sort((a, b) => a - b)}
                 onRemove={handleRemoveTimeTag}
               />
 						</Wrap>
