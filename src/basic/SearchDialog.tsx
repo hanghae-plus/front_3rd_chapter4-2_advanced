@@ -29,7 +29,7 @@ import {
   Wrap,
 } from "@chakra-ui/react";
 import axios from "axios";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DAY_LABELS } from "./constants.ts";
 import { useScheduleContext } from "./ScheduleContext.tsx";
 import { Lecture } from "./types.ts";
@@ -380,55 +380,11 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                   </Stack>
                 </CheckboxGroup>
               </FormControl>
-
-              <FormControl>
-                <FormLabel>전공</FormLabel>
-                <CheckboxGroup
-                  colorScheme="green"
-                  value={searchOptions.majors}
-                  onChange={(values) =>
-                    changeSearchOption("majors", values as string[])
-                  }
-                >
-                  <Wrap spacing={1} mb={2}>
-                    {searchOptions.majors.map((major) => (
-                      <Tag
-                        key={major}
-                        size="sm"
-                        variant="outline"
-                        colorScheme="blue"
-                      >
-                        <TagLabel>{major.split("<p>").pop()}</TagLabel>
-                        <TagCloseButton
-                          onClick={() =>
-                            changeSearchOption(
-                              "majors",
-                              searchOptions.majors.filter((v) => v !== major)
-                            )
-                          }
-                        />
-                      </Tag>
-                    ))}
-                  </Wrap>
-                  <Stack
-                    spacing={2}
-                    overflowY="auto"
-                    h="100px"
-                    border="1px solid"
-                    borderColor="gray.200"
-                    borderRadius={5}
-                    p={2}
-                  >
-                    {allMajors.map((major) => (
-                      <Box key={major}>
-                        <Checkbox key={major} size="sm" value={major}>
-                          {major.replace(/<p>/gi, " ")}
-                        </Checkbox>
-                      </Box>
-                    ))}
-                  </Stack>
-                </CheckboxGroup>
-              </FormControl>
+              <MajorCheckList
+                searchOptions={searchOptions}
+                changeSearchOption={changeSearchOption}
+                allMajors={allMajors}
+              />
             </HStack>
             <Text align="right">검색결과: {filteredLectures.length}개</Text>
             <Box>
@@ -447,35 +403,10 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
               </Table>
 
               <Box overflowY="auto" maxH="500px" ref={loaderWrapperRef}>
-                <Table size="sm" variant="striped">
-                  <Tbody>
-                    {visibleLectures.map((lecture, index) => (
-                      <Tr key={`${lecture.id}-${index}`}>
-                        <Td width="100px">{lecture.id}</Td>
-                        <Td width="50px">{lecture.grade}</Td>
-                        <Td width="200px">{lecture.title}</Td>
-                        <Td width="50px">{lecture.credits}</Td>
-                        <Td
-                          width="150px"
-                          dangerouslySetInnerHTML={{ __html: lecture.major }}
-                        />
-                        <Td
-                          width="150px"
-                          dangerouslySetInnerHTML={{ __html: lecture.schedule }}
-                        />
-                        <Td width="80px">
-                          <Button
-                            size="sm"
-                            colorScheme="green"
-                            onClick={() => addSchedule(lecture)}
-                          >
-                            추가
-                          </Button>
-                        </Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
+                <LectureTable
+                  visibleLectures={visibleLectures}
+                  addSchedule={addSchedule}
+                />
                 <Box ref={loaderRef} h="20px" />
               </Box>
             </Box>
@@ -487,3 +418,120 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
 };
 
 export default SearchDialog;
+
+interface LectureRowProps {
+  lecture: Lecture;
+  index: number;
+  addSchedule: (lecture: Lecture) => void;
+}
+
+const LectureRow = memo(function LectureRow({
+  lecture,
+  index,
+  addSchedule,
+}: LectureRowProps) {
+  return (
+    <Tr key={`${lecture.id}-${index}`}>
+      <Td width="100px">{lecture.id}</Td>
+      <Td width="50px">{lecture.grade}</Td>
+      <Td width="200px">{lecture.title}</Td>
+      <Td width="50px">{lecture.credits}</Td>
+      <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.major }} />
+      <Td
+        width="150px"
+        dangerouslySetInnerHTML={{ __html: lecture.schedule }}
+      />
+      <Td width="80px">
+        <Button
+          size="sm"
+          colorScheme="green"
+          onClick={() => addSchedule(lecture)}
+        >
+          추가
+        </Button>
+      </Td>
+    </Tr>
+  );
+});
+
+interface LectureTableProps {
+  visibleLectures: Lecture[];
+  addSchedule: (lecture: Lecture) => void;
+}
+
+const LectureTable = memo(function LectureTable({
+  visibleLectures,
+  addSchedule,
+}: LectureTableProps) {
+  return (
+    <Table size="sm" variant="striped">
+      <Tbody>
+        {visibleLectures.map((lecture, index) => (
+          <LectureRow
+            lecture={lecture}
+            index={index}
+            addSchedule={addSchedule}
+          />
+        ))}
+      </Tbody>
+    </Table>
+  );
+});
+interface MajorCheckListProps {
+  searchOptions: SearchOption;
+  changeSearchOption: (
+    field: keyof SearchOption,
+    value: SearchOption[typeof field]
+  ) => void;
+  allMajors: string[];
+}
+
+const MajorCheckList = memo(function MajorCheckList({
+  searchOptions,
+  changeSearchOption,
+  allMajors,
+}: MajorCheckListProps) {
+  return (
+    <FormControl>
+      <FormLabel>전공</FormLabel>
+      <CheckboxGroup
+        colorScheme="green"
+        value={searchOptions.majors}
+        onChange={(values) => changeSearchOption("majors", values as string[])}
+      >
+        <Wrap spacing={1} mb={2}>
+          {searchOptions.majors.map((major) => (
+            <Tag key={major} size="sm" variant="outline" colorScheme="blue">
+              <TagLabel>{major.split("<p>").pop()}</TagLabel>
+              <TagCloseButton
+                onClick={() =>
+                  changeSearchOption(
+                    "majors",
+                    searchOptions.majors.filter((v) => v !== major)
+                  )
+                }
+              />
+            </Tag>
+          ))}
+        </Wrap>
+        <Stack
+          spacing={2}
+          overflowY="auto"
+          h="100px"
+          border="1px solid"
+          borderColor="gray.200"
+          borderRadius={5}
+          p={2}
+        >
+          {allMajors.map((major) => (
+            <Box key={major}>
+              <Checkbox key={major} size="sm" value={major}>
+                {major.replace(/<p>/gi, " ")}
+              </Checkbox>
+            </Box>
+          ))}
+        </Stack>
+      </CheckboxGroup>
+    </FormControl>
+  );
+});
