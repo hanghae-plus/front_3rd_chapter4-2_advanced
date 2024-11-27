@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import {
   Box,
   Checkbox,
@@ -33,6 +33,38 @@ interface Props {
 }
 
 const SearchFilter = memo(({ searchOptions, onChangeOption, allMajors }: Props) => {
+  const sortedTimes = useMemo(() => {
+    return [...searchOptions.times].sort((a, b) => a - b);
+  }, [searchOptions.times]);
+
+  const handleChangeTimes = useCallback((values: (string | number)[]) => {
+    onChangeOption('times', values.map(Number))
+  }, [onChangeOption])
+
+  /**
+   * 선택된 시간 태그를 삭제합니다
+   */
+  const handleRemoveTimeTag = useCallback((time: number) => {
+    onChangeOption(
+      'times',
+      searchOptions.times.filter(v => v !== time)
+    )
+  }, [onChangeOption, searchOptions.times])
+
+  const handleChangeMajors = useCallback((values: (string | number)[]) => {
+    onChangeOption('majors', values as string[])
+  }, [onChangeOption])
+
+  /**
+   * 선택된 전공 태그를 삭제합니다
+   */
+  const handleRemoveMajorTag = useCallback((major: string) => {
+    onChangeOption(
+      'majors',
+      searchOptions.majors.filter(v => v !== major)
+    )
+  }, [onChangeOption, searchOptions.majors])
+
   return (
     <>
       <HStack spacing={4}>
@@ -95,20 +127,13 @@ const SearchFilter = memo(({ searchOptions, onChangeOption, allMajors }: Props) 
 					<CheckboxGroup
 						colorScheme="green"
 						value={searchOptions.times}
-						onChange={(values) => onChangeOption('times', values.map(Number))}
+						onChange={handleChangeTimes}
 					>
 						<Wrap spacing={1} mb={2}>
-							{searchOptions.times.sort((a, b) => a - b).map(time => (
-								<Tag key={time} size="sm" variant="outline" colorScheme="blue">
-									<TagLabel>{time}교시</TagLabel>
-									<TagCloseButton
-										onClick={() => onChangeOption(
-											'times',
-											searchOptions.times.filter(v => v !== time)
-										)}
-									/>
-								</Tag>
-							))}
+              <TimeTagList 
+                times={sortedTimes}
+                onRemove={handleRemoveTimeTag}
+              />
 						</Wrap>
 						<Stack 
 							spacing={2} 
@@ -135,20 +160,13 @@ const SearchFilter = memo(({ searchOptions, onChangeOption, allMajors }: Props) 
 						<CheckboxGroup
 							colorScheme="green"
 							value={searchOptions.majors}
-							onChange={(values) => onChangeOption('majors', values as string[])}
+							onChange={handleChangeMajors}
 						>
 							<Wrap spacing={1} mb={2}>
-								{searchOptions.majors.map(major => (
-									<Tag key={major} size="sm" variant="outline" colorScheme="blue">
-										<TagLabel>{major.split("<p>").pop()}</TagLabel>
-										<TagCloseButton
-											onClick={() => onChangeOption(
-												'majors',
-												searchOptions.majors.filter(v => v !== major)
-											)}
-										/>
-									</Tag>
-								))}
+                <MajorTagList 
+                  majors={searchOptions.majors}
+                  onRemove={handleRemoveMajorTag}
+                />
 							</Wrap>
 							<Stack 
 								spacing={2} 
@@ -177,3 +195,41 @@ const SearchFilter = memo(({ searchOptions, onChangeOption, allMajors }: Props) 
 SearchFilter.displayName = 'SearchFilter';
 
 export default SearchFilter;
+
+const TimeTagList = memo(({
+  times,
+  onRemove
+}: {
+  times: number[];
+  onRemove: (time: number) => void;
+}) => (
+  <Wrap spacing={1} mb={2}>
+    {times.map(time => (
+      <Tag key={time} size="sm" variant="outline" colorScheme="blue">
+        <TagLabel>{time}교시</TagLabel>
+        <TagCloseButton onClick={() => onRemove(time)} />
+      </Tag>
+    ))}
+  </Wrap>
+));
+
+TimeTagList.displayName = 'TimeTagList'
+
+const MajorTagList = memo(({
+  majors,
+  onRemove
+ }: {
+  majors: string[];
+  onRemove: (major: string) => void;
+ }) => (
+  <Wrap spacing={1} mb={2}>
+    {majors.map(major => (
+      <Tag key={major} size="sm" variant="outline" colorScheme="blue">
+        <TagLabel>{major.split("<p>").pop()}</TagLabel>
+        <TagCloseButton onClick={() => onRemove(major)} />
+      </Tag>
+    ))}
+  </Wrap>
+ ));
+
+ MajorTagList.displayName = 'MajorTagList'
