@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { Lecture } from './types';
-import { createCachedFetch } from './apiUtils';
+import { createCachedFetch } from './lib/apiUtils';
 
 export const cachedFetchMajors = createCachedFetch(() =>
   axios.get<Lecture[]>('/schedules-majors.json')

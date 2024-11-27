@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   Box,
-  Button,
   Checkbox,
   CheckboxGroup,
   FormControl,
@@ -21,7 +20,6 @@ import {
   TagCloseButton,
   TagLabel,
   Tbody,
-  Td,
   Text,
   Th,
   Thead,
@@ -34,6 +32,8 @@ import { Lecture } from './types.ts';
 import { parseSchedule } from './utils.ts';
 import { DAY_LABELS } from './constants.ts';
 import { cachedFetchLiberalArts, cachedFetchMajors } from './apis.ts';
+import { MajorCheckbox } from './components/MajorCheckbox.tsx';
+import { LectureRow } from './components/LectureRow.tsx';
 
 interface Props {
   searchInfo: {
@@ -108,65 +108,92 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     times: [],
     majors: [],
   });
+  const [filteredLectures, setFilteredLectures] = useState<Lecture[]>([]);
 
-  const filteredLectures = useMemo(() => {
+  const performSearch = useCallback(() => {
     const { query = '', credits, grades, days, times, majors } = searchOptions;
 
-    return lectures.filter((lecture) => {
-      const matchesQuery =
-        !query ||
-        lecture.title.toLowerCase().includes(query.toLowerCase()) ||
-        lecture.id.toLowerCase().includes(query.toLowerCase());
-      if (!matchesQuery) return false;
+    const lowercaseQuery = query.toLowerCase();
 
+    const result = lectures.filter((lecture) => {
       if (grades.length > 0 && !grades.includes(lecture.grade)) return false;
       if (majors.length > 0 && !majors.includes(lecture.major)) return false;
       if (credits && !lecture.credits.startsWith(String(credits))) return false;
 
+      if (lowercaseQuery) {
+        const matchesQuery =
+          lecture.title.toLowerCase().includes(lowercaseQuery) ||
+          lecture.id.toLowerCase().includes(lowercaseQuery);
+        if (!matchesQuery) return false;
+      }
+
       if (days.length === 0 && times.length === 0) return true;
 
       const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
-
-      const matchesDays =
-        days.length === 0 || schedules.some((s) => days.includes(s.day));
-      const matchesTimes =
-        times.length === 0 ||
-        schedules.some((s) => s.range.some((time) => times.includes(time)));
-
-      return matchesDays && matchesTimes;
+      return (
+        (days.length === 0 || schedules.some((s) => days.includes(s.day))) &&
+        (times.length === 0 ||
+          schedules.some((s) => s.range.some((time) => times.includes(time))))
+      );
     });
+
+    setFilteredLectures(result);
   }, [lectures, searchOptions]);
 
+  useEffect(() => {
+    performSearch();
+  }, [performSearch]);
+
   const lastPage = Math.ceil(filteredLectures.length / PAGE_SIZE);
-  const visibleLectures = filteredLectures.slice(0, page * PAGE_SIZE);
-  const allMajors = [...new Set(lectures.map((lecture) => lecture.major))];
 
-  const changeSearchOption = (
-    field: keyof SearchOption,
-    value: SearchOption[typeof field]
-  ) => {
-    setPage(1);
-    setSearchOptions({ ...searchOptions, [field]: value });
-    loaderWrapperRef.current?.scrollTo(0, 0);
-  };
+  const visibleLectures = useMemo(() => {
+    return filteredLectures.slice(0, page * PAGE_SIZE);
+  }, [filteredLectures, page]);
 
-  const addSchedule = (lecture: Lecture) => {
-    if (!searchInfo) return;
+  const allMajors = useMemo(
+    () => [...new Set(lectures.map((lecture) => lecture.major))],
+    [lectures]
+  );
 
-    const { tableId } = searchInfo;
+  const changeSearchOption = useCallback(
+    (field: keyof SearchOption, value: SearchOption[typeof field]) => {
+      setPage(1);
+      setSearchOptions((prev) => ({ ...prev, [field]: value }));
+      loaderWrapperRef.current?.scrollTo(0, 0);
+    },
+    []
+  );
 
-    const schedules = parseSchedule(lecture.schedule).map((schedule) => ({
-      ...schedule,
-      lecture,
-    }));
+  const addSchedule = useCallback(
+    (lecture: Lecture) => {
+      if (!searchInfo) return;
 
-    setSchedulesMap((prev) => ({
-      ...prev,
-      [tableId]: [...prev[tableId], ...schedules],
-    }));
+      const { tableId } = searchInfo;
 
-    onClose();
-  };
+      const schedules = parseSchedule(lecture.schedule).map((schedule) => ({
+        ...schedule,
+        lecture,
+      }));
+
+      setSchedulesMap((prev) => ({
+        ...prev,
+        [tableId]: [...prev[tableId], ...schedules],
+      }));
+
+      onClose();
+    },
+    [searchInfo, onClose, setSchedulesMap]
+  );
+
+  const handleMajorChange = useCallback(
+    (major: string) => {
+      const newMajors = searchOptions.majors.includes(major)
+        ? searchOptions.majors.filter((m) => m !== major)
+        : [...searchOptions.majors, major];
+      changeSearchOption('majors', newMajors);
+    },
+    [searchOptions.majors, changeSearchOption]
+  );
 
   useEffect(() => {
     const start = performance.now();
@@ -373,11 +400,12 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                     p={2}
                   >
                     {allMajors.map((major) => (
-                      <Box key={major}>
-                        <Checkbox key={major} size="sm" value={major}>
-                          {major.replace(/<p>/gi, ' ')}
-                        </Checkbox>
-                      </Box>
+                      <MajorCheckbox
+                        key={major}
+                        major={major}
+                        isChecked={searchOptions.majors.includes(major)}
+                        onChange={handleMajorChange}
+                      />
                     ))}
                   </Stack>
                 </CheckboxGroup>
@@ -403,29 +431,11 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                 <Table size="sm" variant="striped">
                   <Tbody>
                     {visibleLectures.map((lecture, index) => (
-                      <Tr key={`${lecture.id}-${index}`}>
-                        <Td width="100px">{lecture.id}</Td>
-                        <Td width="50px">{lecture.grade}</Td>
-                        <Td width="200px">{lecture.title}</Td>
-                        <Td width="50px">{lecture.credits}</Td>
-                        <Td
-                          width="150px"
-                          dangerouslySetInnerHTML={{ __html: lecture.major }}
-                        />
-                        <Td
-                          width="150px"
-                          dangerouslySetInnerHTML={{ __html: lecture.schedule }}
-                        />
-                        <Td width="80px">
-                          <Button
-                            size="sm"
-                            colorScheme="green"
-                            onClick={() => addSchedule(lecture)}
-                          >
-                            추가
-                          </Button>
-                        </Td>
-                      </Tr>
+                      <LectureRow
+                        key={`${lecture.id}-${index}`}
+                        lecture={lecture}
+                        onAddSchedule={addSchedule}
+                      />
                     ))}
                   </Tbody>
                 </Table>
