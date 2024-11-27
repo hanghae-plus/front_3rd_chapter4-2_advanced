@@ -34,6 +34,7 @@ import { Lecture } from './types.ts';
 import { parseSchedule } from "./utils.ts";
 import axios, { AxiosResponse } from "axios";
 import { DAY_LABELS } from './constants.ts';
+import MajorCheckbox from './MajorCheckbox.tsx';
 
 interface Props {
   searchInfo: {
@@ -184,6 +185,12 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     setSearchOptions(prev => ({ ...prev, [field]: value }));
     loaderWrapperRef.current?.scrollTo(0, 0);
   }, []);
+
+  const handleMajorCheckboxChange = useCallback((values:SearchOption['majors']) => {
+      changeSearchOption('majors', values);
+    },
+    [changeSearchOption]
+  );
 
   const addSchedule = useCallback((lecture: Lecture) => {
     if (!searchInfo) return;
@@ -357,11 +364,13 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                   <Stack spacing={2} overflowY="auto" h="100px" border="1px solid" borderColor="gray.200"
                         borderRadius={5} p={2}>
                     {allMajors.map(major => (
-                      <Box key={major}>
-                        <Checkbox key={major} size="sm" value={major}>
-                          {major.replace(/<p>/gi, ' ')}
-                        </Checkbox>
-                      </Box>
+                      <MajorCheckbox key={major} major={major} onChange={()=>handleMajorCheckboxChange} />
+
+                      // <Box key={major}>
+                      //   <Checkbox key={major} size="sm" value={major}>
+                      //     {major.replace(/<p>/gi, ' ')}
+                      //   </Checkbox>
+                      // </Box>
                     ))}
                   </Stack>
                 </CheckboxGroup>
