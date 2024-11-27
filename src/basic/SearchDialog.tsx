@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -107,16 +107,63 @@ const { fetchMajors, fetchLiberalArts } = createCachedFetch<Lecture[]>();
 const fetchAllLecturesEfficient = async () => {
   // 동일하게 6번 호출하지만, 캐시로 인해 실제로는 2번만 네트워크 요청
   const results = await Promise.all([
-  (console.log('API Call 1', performance.now()), await fetchMajors()),
-  (console.log('API Call 2', performance.now()), await fetchLiberalArts()),
-  (console.log('API Call 3', performance.now()), await fetchMajors()),
-  (console.log('API Call 4', performance.now()), await fetchLiberalArts()),
-  (console.log('API Call 5', performance.now()), await fetchMajors()),
-  (console.log('API Call 6', performance.now()), await fetchLiberalArts()),
-]);
+    (console.log('API Call 1', performance.now()), await fetchMajors()),
+    (console.log('API Call 2', performance.now()), await fetchLiberalArts()),
+    (console.log('API Call 3', performance.now()), await fetchMajors()),
+    (console.log('API Call 4', performance.now()), await fetchLiberalArts()),
+    (console.log('API Call 5', performance.now()), await fetchMajors()),
+    (console.log('API Call 6', performance.now()), await fetchLiberalArts()),
+  ]);
   return results;
 };
 
+// 검색어 필터링 함수
+const matchLectureQuery = (lecture: Lecture, query: string) => {
+  return (
+    lecture.title.toLowerCase().includes(query.toLowerCase()) ||
+    lecture.id.toLowerCase().includes(query.toLowerCase())
+  );
+};
+
+// 학점 체크 함수
+const matchCredit = (lectureCredits: string, credits: number | undefined) => {
+  return !credits || lectureCredits.startsWith(String(credits));
+};
+
+// 성적 체크 합수
+const matchGrade = (lectureGrade: number, grades: number[]) => {
+  return !grades || grades.includes(lectureGrade);
+};
+
+// 전공 체크 함수
+const matchMajor = (lectureMajor: string, majors: string[]) => {
+  return !majors || majors.includes(lectureMajor);
+};
+
+// 시간표 체크 함수 (days와 times 모두 처리)
+const matchesSchedule = (lectureSchedule: string, days: string[], times: number[]) => {
+  // 시간 필터가 없으면 true
+  if (days.length === 0 && times.length === 0) {
+    return true;
+  }
+
+  // schedule이 없으면 false
+  if (!lectureSchedule) {
+    return false;
+  }
+
+  const schedules = parseSchedule(lectureSchedule);
+  
+  // 요일 체크
+  const hasMatchedDays = days.length === 0 || 
+    schedules.some(s => days.includes(s.day));
+
+  // 시간 체크
+  const hasMatchedTimes = times.length === 0 || 
+    schedules.some(s => s.range.some(time => times.includes(time)));
+
+  return hasMatchedDays && hasMatchedTimes;
+};
 
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
@@ -134,60 +181,46 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     majors: [],
   });
 
-  const getFilteredLectures = () => {
+  // 새로운 메모이제이션 코드 추가
+  const filteredLectures = useMemo(() => {
     const { query = '', credits, grades, days, times, majors } = searchOptions;
-    return lectures
-      .filter(lecture =>
-        lecture.title.toLowerCase().includes(query.toLowerCase()) ||
-        lecture.id.toLowerCase().includes(query.toLowerCase())
-      )
-      .filter(lecture => grades.length === 0 || grades.includes(lecture.grade))
-      .filter(lecture => majors.length === 0 || majors.includes(lecture.major))
-      .filter(lecture => !credits || lecture.credits.startsWith(String(credits)))
-      .filter(lecture => {
-        if (days.length === 0) {
-          return true;
-        }
-        const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
-        return schedules.some(s => days.includes(s.day));
-      })
-      .filter(lecture => {
-        if (times.length === 0) {
-          return true;
-        }
-        const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
-        return schedules.some(s => s.range.some(time => times.includes(time)));
-      });
-  }
+    return lectures.filter(lecture => matchLectureQuery(lecture, query) &&
+        matchGrade(lecture.grade, grades) &&
+        matchMajor(lecture.major, majors) &&
+        matchCredit(lecture.credits, credits) &&
+        matchesSchedule(lecture.schedule, days, times));
+  }, [lectures, searchOptions]); // lectures나 searchOptions가 변경될 때만 재계산
 
-  const filteredLectures = getFilteredLectures();
-  const lastPage = Math.ceil(filteredLectures.length / PAGE_SIZE);
-  const visibleLectures = filteredLectures.slice(0, page * PAGE_SIZE);
-  const allMajors = [...new Set(lectures.map(lecture => lecture.major))];
+  const lastPage = useMemo(() => 
+    Math.ceil(filteredLectures.length / PAGE_SIZE)
+  , [filteredLectures.length]);
 
-  const changeSearchOption = (field: keyof SearchOption, value: SearchOption[typeof field]) => {
+  const visibleLectures = useMemo(() => 
+    filteredLectures.slice(0, page * PAGE_SIZE)
+  , [filteredLectures, page]);
+
+  const allMajors = useMemo(() => 
+    [...new Set(lectures.map(lecture => lecture.major))]
+  , [lectures]);
+
+  const changeSearchOption = useCallback((field: keyof SearchOption, value: SearchOption[typeof field]) => {
     setPage(1);
-    setSearchOptions(({ ...searchOptions, [field]: value }));
+    setSearchOptions(prev => ({ ...prev, [field]: value }));
     loaderWrapperRef.current?.scrollTo(0, 0);
-  };
+  }, []);
 
-  const addSchedule = (lecture: Lecture) => {
+  const addSchedule = useCallback((lecture: Lecture) => {
     if (!searchInfo) return;
-
-    const { tableId } = searchInfo;
-
     const schedules = parseSchedule(lecture.schedule).map(schedule => ({
       ...schedule,
       lecture
     }));
-
     setSchedulesMap(prev => ({
       ...prev,
-      [tableId]: [...prev[tableId], ...schedules]
+      [searchInfo.tableId]: [...prev[searchInfo.tableId], ...schedules]
     }));
-
     onClose();
-  };
+  }, [searchInfo, setSchedulesMap, onClose]);
 
   useEffect(() => {
     const start = performance.now();
