@@ -87,13 +87,39 @@ const fetchLiberalArts = () => axios.get<Lecture[]>('/schedules-liberal-arts.jso
 
 // TODO: 이 코드를 개선해서 API 호출을 최소화 해보세요 + Promise.all이 현재 잘못 사용되고 있습니다. 같이 개선해주세요.
 // await를 배열 내부에서 사용해서 발생하는 문제 -> 시작된 Promise를 모아서 실행시켜보기
+// 중복호출문제 -> 캐싱, 클로저
+const createApiCache = () => {
+  // 캐시 저장소
+  const cache: {
+    majors?: Promise<any>;
+    liberalArts?: Promise<any>;
+  } = {};
+
+  return {
+    getMajors: () => {
+      if (!cache.majors) {
+        cache.majors = fetchMajors();
+      }
+      return cache.majors;
+    },
+    getLiberalArts: () => {
+      if (!cache.liberalArts) {
+        cache.liberalArts = fetchLiberalArts();
+      }
+      return cache.liberalArts;
+    }
+  };
+};
+
+const apiCache = createApiCache();
+
 const fetchAllLectures = async () => {
-  const promise1 = (console.log('API Call 1', performance.now()), fetchMajors());
-  const promise2 = (console.log('API Call 2', performance.now()), fetchLiberalArts());
-  const promise3 = (console.log('API Call 3', performance.now()), fetchMajors());
-  const promise4 = (console.log('API Call 4', performance.now()), fetchLiberalArts());
-  const promise5 = (console.log('API Call 5', performance.now()), fetchMajors());
-  const promise6 = (console.log('API Call 6', performance.now()), fetchLiberalArts());
+  const promise1 = (console.log('API Call 1', performance.now()), apiCache.getMajors());
+  const promise2 = (console.log('API Call 2', performance.now()), apiCache.getLiberalArts());
+  const promise3 = (console.log('API Call 3', performance.now()), apiCache.getMajors());
+  const promise4 = (console.log('API Call 4', performance.now()), apiCache.getLiberalArts());
+  const promise5 = (console.log('API Call 5', performance.now()), apiCache.getMajors());
+  const promise6 = (console.log('API Call 6', performance.now()), apiCache.getLiberalArts());
 
   return Promise.all([
     promise1,
