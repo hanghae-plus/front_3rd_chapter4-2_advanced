@@ -34,6 +34,7 @@ import { Lecture } from './types.ts';
 import { parseSchedule } from "./utils.ts";
 import axios from "axios";
 import { DAY_LABELS } from './constants.ts';
+import { createCachedApiCall } from './core/createCachedApiCall.ts';
 
 interface Props {
   searchInfo: {
@@ -52,6 +53,7 @@ interface SearchOption {
   majors: string[],
   credits?: number,
 }
+
 
 const TIME_SLOTS = [
   { id: 1, label: "09:00~09:30" },
@@ -82,18 +84,27 @@ const TIME_SLOTS = [
 
 const PAGE_SIZE = 100;
 
-const fetchMajors = () => axios.get<Lecture[]>('/schedules-majors.json');
-const fetchLiberalArts = () => axios.get<Lecture[]>('/schedules-liberal-arts.json');
+const fetchMajors = createCachedApiCall(() => axios.get<Lecture[]>('/schedules-majors.json'));
+const fetchLiberalArts = createCachedApiCall(() => axios.get<Lecture[]>('/schedules-liberal-arts.json'));
 
-// TODO: 이 코드를 개선해서 API 호출을 최소화 해보세요 + Promise.all이 현재 잘못 사용되고 있습니다. 같이 개선해주세요.
-const fetchAllLectures = async () => await Promise.all([
-  (console.log('API Call 1', performance.now()), await fetchMajors()),
-  (console.log('API Call 2', performance.now()), await fetchLiberalArts()),
-  (console.log('API Call 3', performance.now()), await fetchMajors()),
-  (console.log('API Call 4', performance.now()), await fetchLiberalArts()),
-  (console.log('API Call 5', performance.now()), await fetchMajors()),
-  (console.log('API Call 6', performance.now()), await fetchLiberalArts()),
-]);
+//  TODO: 이 코드를 개선해서 API 호출을 최소화 해보세요 + Promise.all이 현재 잘못 사용되고 있습니다. 같이 개선해주세요.
+const fetchAllLectures = () => {
+  const promises = [
+    fetchMajors(),
+    fetchLiberalArts(),
+    fetchMajors(),
+    fetchLiberalArts(),
+    fetchMajors(),
+    fetchLiberalArts(),
+  ];
+
+  promises.forEach((_, index) => {
+    console.log(`API Call ${index + 1}`, performance.now());
+  });
+
+  return Promise.all(promises);
+};
+
 
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
@@ -115,8 +126,8 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     const { query = '', credits, grades, days, times, majors } = searchOptions;
     return lectures
       .filter(lecture =>
-        lecture.title.toLowerCase().includes(query.toLowerCase()) ||
-        lecture.id.toLowerCase().includes(query.toLowerCase())
+        lecture?.title.toLowerCase().includes(query.toLowerCase()) ||
+        lecture?.id.toLowerCase().includes(query.toLowerCase())
       )
       .filter(lecture => grades.length === 0 || grades.includes(lecture.grade))
       .filter(lecture => majors.length === 0 || majors.includes(lecture.major))
@@ -140,7 +151,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
   const filteredLectures = getFilteredLectures();
   const lastPage = Math.ceil(filteredLectures.length / PAGE_SIZE);
   const visibleLectures = filteredLectures.slice(0, page * PAGE_SIZE);
-  const allMajors = [...new Set(lectures.map(lecture => lecture.major))];
+  const allMajors = [...new Set(lectures.map(lecture => lecture?.major))];
 
   const changeSearchOption = (field: keyof SearchOption, value: SearchOption[typeof field]) => {
     setPage(1);
@@ -153,7 +164,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
 
     const { tableId } = searchInfo;
 
-    const schedules = parseSchedule(lecture.schedule).map(schedule => ({
+    const schedules = parseSchedule(lecture?.schedule).map(schedule => ({
       ...schedule,
       lecture
     }));
@@ -229,6 +240,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
               <FormControl>
                 <FormLabel>학점</FormLabel>
                 <Select
+                  aria-label='학점 선택'
                   value={searchOptions.credits}
                   onChange={(e) => changeSearchOption('credits', e.target.value)}
                 >
@@ -321,7 +333,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                     {allMajors.map(major => (
                       <Box key={major}>
                         <Checkbox key={major} size="sm" value={major}>
-                          {major.replace(/<p>/gi, ' ')}
+                          {major?.replace(/<p>/gi, ' ')}
                         </Checkbox>
                       </Box>
                     ))}
@@ -352,10 +364,10 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                   <Tbody>
                     {visibleLectures.map((lecture, index) => (
                       <Tr key={`${lecture.id}-${index}`}>
-                        <Td width="100px">{lecture.id}</Td>
-                        <Td width="50px">{lecture.grade}</Td>
-                        <Td width="200px">{lecture.title}</Td>
-                        <Td width="50px">{lecture.credits}</Td>
+                        <Td width="100px">{lecture?.id}</Td>
+                        <Td width="50px">{lecture?.grade}</Td>
+                        <Td width="200px">{lecture?.title}</Td>
+                        <Td width="50px">{lecture?.credits}</Td>
                         <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.major }}/>
                         <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.schedule }}/>
                         <Td width="80px">
