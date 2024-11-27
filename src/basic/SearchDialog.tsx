@@ -28,6 +28,7 @@ import { DAY_OPTIONS, GRADE_OPTIONS, TIME_SLOTS } from '../search/model/constant
 import { SearchInput } from '../search/ui/SearchInput.tsx';
 import { CreditSelect } from '../search/ui/CreditSelect.tsx';
 import { useFilteredLectures } from '../hooks/useFilteredLecture.ts';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll.ts';
 
 interface Props {
   searchInfo: {
@@ -60,40 +61,6 @@ const fetchAllLecturesEfficient = async () => {
     (console.log('API Call 6', performance.now()), await fetchLiberalArts()),
   ]);
   return results;
-};
-
-const useFilteredLectures = (lectures: Lecture[], searchOptions: SearchOption) => {
-  return useMemo(() => {
-    const { query = '', credits, grades, days, times, majors } = searchOptions;
-
-    // 1. 가장 빈번하게 사용되는 필터부터 적용
-    let filtered = lectures;
-
-    // 2. 단순 비교 필터를 먼저 적용 (연산 비용이 적은 순서대로)
-    if (credits) {
-      filtered = filtered.filter(lecture => matchCredit(lecture.credits, credits));
-    }
-
-    if (grades.length > 0) {
-      filtered = filtered.filter(lecture => matchGrade(lecture.grade, grades));
-    }
-
-    if (majors.length > 0) {
-      filtered = filtered.filter(lecture => matchMajor(lecture.major, majors));
-    }
-
-    // 3. 문자열 검색 필터 적용
-    if (query) {
-      filtered = filtered.filter(lecture => matchLectureQuery(lecture, query));
-    }
-
-    // 4. 가장 복잡한 연산인 시간표 필터를 마지막에 적용
-    if (days.length > 0 || times.length > 0) {
-      filtered = filtered.filter(lecture => matchesSchedule(lecture.schedule, days, times));
-    }
-
-    return filtered;
-  }, [lectures, searchOptions]);
 };
 
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
@@ -146,6 +113,17 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     onClose();
   }, [searchInfo, setSchedulesMap, onClose]);
 
+  const handleLoadMore = useCallback(() => {
+    setPage(prevPage => Math.min(lastPage, prevPage + 1));
+  }, [lastPage]);
+
+  useInfiniteScroll({
+    targetRef: loaderRef,
+    wrapperRef: loaderWrapperRef,
+    totalPages: lastPage,
+    onIntersect: handleLoadMore
+  });
+
   useEffect(() => {
     const start = performance.now();
     console.log('API 호출 시작: ', start)
@@ -156,28 +134,6 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
       setLectures(results.flatMap(result => result.data));
     })
   }, []);
-
-  useEffect(() => {
-    const $loader = loaderRef.current;
-    const $loaderWrapper = loaderWrapperRef.current;
-
-    if (!$loader || !$loaderWrapper) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting) {
-          setPage(prevPage => Math.min(lastPage, prevPage + 1));
-        }
-      },
-      { threshold: 0, root: $loaderWrapper }
-    );
-
-    observer.observe($loader);
-
-    return () => observer.unobserve($loader);
-  }, [lastPage]);
 
   useEffect(() => {
     setSearchOptions(prev => ({
