@@ -6,7 +6,7 @@ import {
   HStack,
 } from '@chakra-ui/react';
 import { memo } from 'react';
-import { DAY_LABELS } from '../constants';
+import { DAY_LABELS } from '../../constants';
 
 type Props = {
   value?: string[];

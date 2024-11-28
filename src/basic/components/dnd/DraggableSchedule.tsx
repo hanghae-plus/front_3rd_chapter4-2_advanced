@@ -9,14 +9,14 @@ import {
   PopoverTrigger,
   Text,
 } from '@chakra-ui/react';
-import { CellSize, DAY_LABELS } from '../constants.ts';
-import { Schedule } from '../types.ts';
+import { CellSize, DAY_LABELS } from '../../constants';
+import { Schedule } from '../../types';
 
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { ComponentProps, memo } from 'react';
 
-const DraggableSchedule = memo(function DraggableSchedule({
+export const DraggableSchedule = memo(function DraggableSchedule({
   id,
   data,
   bg,
@@ -67,4 +67,3 @@ const DraggableSchedule = memo(function DraggableSchedule({
     </Popover>
   );
 });
-export default DraggableSchedule;
