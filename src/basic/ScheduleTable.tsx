@@ -17,7 +17,7 @@ import { Schedule } from "./types.ts";
 import { fill2, parseHnM } from "./utils.ts";
 import { useDndContext, useDraggable } from "@dnd-kit/core";
 import { CSS } from '@dnd-kit/utilities';
-import { ComponentProps, Fragment } from "react";
+import { ComponentProps, Fragment, memo, useCallback } from "react";
 import ScheduleDndProvider from "./ScheduleDndProvider.tsx";
 
 interface Props {
@@ -58,6 +58,13 @@ const ScheduleTable = ({ tableId, schedules, onScheduleTimeClick, onDeleteButton
   }
 
   const activeTableId = getActiveTableId();
+
+  const handleDeleteSchedule = useCallback((schedule: Schedule) => {
+    onDeleteButtonClick?.({
+      day: schedule.day,
+      time: schedule.range[0],
+    })
+  }, [onDeleteButtonClick])
 
   return (
     <ScheduleDndProvider>
@@ -119,10 +126,7 @@ const ScheduleTable = ({ tableId, schedules, onScheduleTimeClick, onDeleteButton
             id={`${tableId}:${index}`}
             data={schedule}
             bg={getColor(schedule.lecture.id)}
-            onDeleteButtonClick={() => onDeleteButtonClick?.({
-              day: schedule.day,
-              time: schedule.range[0],
-            })}
+            onDeleteButtonClick={handleDeleteSchedule}
           />
         ))}
       </Box>
@@ -130,19 +134,27 @@ const ScheduleTable = ({ tableId, schedules, onScheduleTimeClick, onDeleteButton
   );
 };
 
-const DraggableSchedule = ({
+const DraggableSchedule = memo(({
  id,
  data,
  bg,
  onDeleteButtonClick
 }: { id: string; data: Schedule } & ComponentProps<typeof Box> & {
-  onDeleteButtonClick: () => void
+  onDeleteButtonClick: (schedule: Schedule) => void
 }) => {
+  console.log('rendered', {
+    id,
+    name: data.lecture.title,
+  });
   const { day, range, room, lecture } = data;
   const { attributes, setNodeRef, listeners, transform } = useDraggable({ id });
   const leftIndex = DAY_LABELS.indexOf(day as typeof DAY_LABELS[number]);
   const topIndex = range[0] - 1;
   const size = range.length;
+
+  const handleClickDeleteButton = useCallback(() => {
+    onDeleteButtonClick(data);
+  }, [onDeleteButtonClick, data]);
 
   return (
     <Popover>
@@ -171,13 +183,15 @@ const DraggableSchedule = ({
         <PopoverCloseButton/>
         <PopoverBody>
           <Text>강의를 삭제하시겠습니까?</Text>
-          <Button colorScheme="red" size="xs" onClick={onDeleteButtonClick}>
+          <Button colorScheme="red" size="xs" onClick={handleClickDeleteButton}>
             삭제
           </Button>
         </PopoverBody>
       </PopoverContent>
     </Popover>
   );
-}
+})
+
+DraggableSchedule.displayName = 'DraggableSchedule';
 
 export default ScheduleTable;
