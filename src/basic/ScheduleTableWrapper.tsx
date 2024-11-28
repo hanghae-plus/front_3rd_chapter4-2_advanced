@@ -1,28 +1,31 @@
 import { Button, ButtonGroup, Flex, Heading, Stack } from "@chakra-ui/react";
 import ScheduleTable from "./ScheduleTable.tsx";
-import { useTableSchedule } from "./useTableSchedule";
-
+import { useTableSchedule } from "./ScheduleContext";
+import ScheduleDndProvider from './ScheduleDndProvider.tsx'
 
 interface Props {
-    tableId: string;
-    index: number;
-    onDuplicate: () => void;
-    onRemove: () => void;
-    canRemove: boolean;
-    onSearchDialogOpen: (info?: { day?: string; time?: number }) => void;
-  }
+  tableId: string;
+  index: number;
+  onDuplicate: () => void;
+  onRemove: () => void;
+  canRemove: boolean;
+  onSearchDialogOpen: (info?: { day?: string; time?: number }) => void;
+}
   
-  export const ScheduleTableWrapper = ({ 
-    tableId, 
-    index, 
-    onDuplicate, 
-    onRemove, 
-    canRemove,
-    onSearchDialogOpen
-  }: Props) => {
-    const { schedules, updateSchedules } = useTableSchedule(tableId);
+
+export const ScheduleTableWrapper = ({ 
+  tableId, 
+  index, 
+  onDuplicate, 
+  onRemove, 
+  canRemove,
+  onSearchDialogOpen
+}: Props) => {
+  const { schedules, updateTableSchedules } = useTableSchedule(tableId); 
+
   
-    return (
+  return (
+    <ScheduleDndProvider tableId={tableId}>
       <Stack width="600px">
         <Flex justifyContent="space-between" alignItems="center">
           <Heading as="h3" fontSize="lg">시간표 {index + 1}</Heading>
@@ -43,16 +46,16 @@ interface Props {
           </ButtonGroup>
         </Flex>
         <ScheduleTable
-          schedules={schedules}
           tableId={tableId}
           onScheduleTimeClick={(timeInfo) => onSearchDialogOpen(timeInfo)}
           onDeleteButtonClick={({ day, time }) => {
             const newSchedules = schedules.filter(
               schedule => schedule.day !== day || !schedule.range.includes(time)
             );
-            updateSchedules(newSchedules);
+            updateTableSchedules(newSchedules); 
           }}
         />
       </Stack>
-    );
-  };
+      </ScheduleDndProvider>
+  );
+};
