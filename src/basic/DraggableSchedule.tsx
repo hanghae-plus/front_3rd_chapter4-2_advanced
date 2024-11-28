@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import {
   Box,
   Button,
@@ -36,6 +36,10 @@ const DraggableSchedule = memo(({
   const topIndex = useMemo(() => range[0] - 1, [range]);
   const size = useMemo(() => range.length, [range]);
 
+  const handleDelete = useCallback(() => {
+    onDeleteButtonClick();
+  }, [onDeleteButtonClick]);
+
   return (
     <Popover>
       <PopoverTrigger>
@@ -64,7 +68,7 @@ const DraggableSchedule = memo(({
         <PopoverCloseButton />
         <PopoverBody>
           <Text>강의를 삭제하시겠습니까?</Text>
-          <Button colorScheme="red" size="xs" onClick={onDeleteButtonClick}>
+          <Button colorScheme="red" size="xs" onClick={handleDelete}>
             삭제
           </Button>
         </PopoverBody>

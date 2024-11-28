@@ -11,12 +11,16 @@ import { fill2, parseHnM } from "./utils.ts";
 import { Fragment, memo, useCallback } from "react";
 import DraggableSchedule from './DraggableSchedule.tsx';
 import { useDndActive } from './ScheduleDndProvider.tsx';
+import { useScheduleContext } from './ScheduleContext.tsx';
 
 interface Props {
   tableId: string;
   schedules: Schedule[];
-  onScheduleTimeClick?: (timeInfo: { day: string, time: number }) => void;
-  onDeleteButtonClick?: (timeInfo: { day: string, time: number }) => void;
+  setSearchInfo: React.Dispatch<React.SetStateAction<{
+    tableId: string;
+    day?: string;
+    time?: number;
+  } | null>>;
 }
 
 const TIMES = [
@@ -31,15 +35,15 @@ const TIMES = [
     .map((v) => `${parseHnM(v)}~${parseHnM(v + 50 * 분)}`),
 ] as const;
 
-const ScheduleTable = memo(({ tableId, schedules, onScheduleTimeClick, onDeleteButtonClick }: Props) => {
+const ScheduleTable = memo(({ tableId, schedules, setSearchInfo }: Props) => {
+  const { setSchedulesMap } = useScheduleContext();
+  const activeId = useDndActive();
 
-  const getColor = (lectureId: string): string => {
+  const getColor = useCallback((lectureId: string): string => {
     const lectures = [...new Set(schedules.map(({ lecture }) => lecture.id))];
     const colors = ["#fdd", "#ffd", "#dff", "#ddf", "#fdf", "#dfd"];
     return colors[lectures.indexOf(lectureId) % colors.length];
-  };
-
-  const activeId = useDndActive();
+  }, [schedules]);
 
   const getActiveTableId = useCallback(() => {
     if (activeId) {
@@ -49,6 +53,18 @@ const ScheduleTable = memo(({ tableId, schedules, onScheduleTimeClick, onDeleteB
   }, [activeId]);
 
   const activeTableId = getActiveTableId();
+
+  // 핸들러 함수 메모이제이션
+  const handleTimeClick = useCallback((timeInfo: { day: string, time: number }) => {
+    setSearchInfo({ tableId, ...timeInfo });
+  }, [setSearchInfo, tableId]);
+
+  const handleDeleteButtonClick = useCallback(({ day, time }: { day: string, time: number }) => {
+    setSchedulesMap(prev => ({
+      ...prev,
+      [tableId]: prev[tableId].filter(schedule => schedule.day !== day || !schedule.range.includes(time))
+    }));
+  }, [setSchedulesMap, tableId]);
 
   return (
     <Box
@@ -96,7 +112,7 @@ const ScheduleTable = memo(({ tableId, schedules, onScheduleTimeClick, onDeleteB
                 bg={timeIndex > 17 ? 'gray.100' : 'white'}
                 cursor="pointer"
                 _hover={{ bg: 'yellow.100' }}
-                onClick={() => onScheduleTimeClick?.({ day, time: timeIndex + 1 })}
+                onClick={() => handleTimeClick({ day, time: timeIndex + 1 })}
               />
             ))}
           </Fragment>
@@ -109,7 +125,7 @@ const ScheduleTable = memo(({ tableId, schedules, onScheduleTimeClick, onDeleteB
           id={`${tableId}:${index}`}
           data={schedule}
           bg={getColor(schedule.lecture.id)}
-          onDeleteButtonClick={() => onDeleteButtonClick?.({
+          onDeleteButtonClick={() => handleDeleteButtonClick({
             day: schedule.day,
             time: schedule.range[0],
           })}

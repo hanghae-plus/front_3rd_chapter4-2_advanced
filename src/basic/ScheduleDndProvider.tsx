@@ -25,7 +25,7 @@ function createSnapModifier(): Modifier {
   };
 }
 
-const modifiers = [createSnapModifier()]
+const modifiers = [createSnapModifier()];
 const DndActiveContext = createContext<string | null>(null);
 
 export const useDndActive = () => useContext(DndActiveContext);
@@ -43,20 +43,21 @@ export default function ScheduleDndProvider({ children }: PropsWithChildren) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleDragEnd = useCallback((event:any) => {
+  const handleDragEnd = useCallback((event: any) => {
     const { active, delta } = event;
     setActiveId(null);
     const { x, y } = delta;
-    const [tableId, index] = active.id.split(':');
+    const [tableId, indexStr] = active.id.split(':');
+    const index = Number(indexStr);
     const schedule = schedulesMap[tableId][index];
     const nowDayIndex = DAY_LABELS.indexOf(schedule.day as typeof DAY_LABELS[number]);
     const moveDayIndex = Math.floor(x / CellSize.WIDTH);
     const moveTimeIndex = Math.floor(y / CellSize.HEIGHT);
 
-    setSchedulesMap({
-      ...schedulesMap,
-      [tableId]: schedulesMap[tableId].map((targetSchedule, targetIndex) => {
-        if (targetIndex !== Number(index)) {
+    setSchedulesMap(prev => ({
+      ...prev,
+      [tableId]: prev[tableId].map((targetSchedule, targetIndex) => {
+        if (targetIndex !== index) {
           return targetSchedule;
         }
         return {
@@ -65,7 +66,7 @@ export default function ScheduleDndProvider({ children }: PropsWithChildren) {
           range: targetSchedule.range.map(time => time + moveTimeIndex),
         };
       }),
-    });
+    }));
   }, [schedulesMap, setSchedulesMap]);
 
   const contextValue = useMemo(() => activeId, [activeId]);
