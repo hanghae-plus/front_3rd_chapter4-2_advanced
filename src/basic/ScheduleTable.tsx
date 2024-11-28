@@ -1,7 +1,6 @@
 import { Box, Grid } from '@chakra-ui/react';
 import { CellSize, DAY_LABELS } from "./constants.ts";
 import { Schedule } from "./types.ts";
-import { useDndContext } from "@dnd-kit/core";
 import { Fragment, memo, useMemo } from "react";
 import { GridHeader } from '../schedule/ui/GridHeader.tsx';
 import { TimeCell } from '../schedule/ui/TimeCell.tsx';
@@ -12,22 +11,12 @@ import { TIMES } from '../schedule/model/constants.ts';
 interface Props {
   tableId: string;
   schedules: Schedule[];
+  draggingTableId: string | null;
   onScheduleTimeClick?: (timeInfo: { day: string, time: number }) => void;
   onDeleteButtonClick?: (timeInfo: { day: string, time: number }) => void;
 }
 
-const ScheduleTable = memo(({ tableId, schedules, onScheduleTimeClick, onDeleteButtonClick }: Props) => {
-
-  const dndContext = useDndContext();
-
-  // activeTableId 계산을 메모이제이션
-  const activeTableId = useMemo(() => {
-    const activeId = dndContext.active?.id;
-    if (activeId) {
-      return String(activeId).split(":")[0];
-    }
-    return null;
-  }, [dndContext.active?.id]);  // active.id가 변경될 때만 재계산
+const ScheduleTable = memo(({ tableId, schedules, draggingTableId, onScheduleTimeClick, onDeleteButtonClick }: Props) => {
 
   // 컬러 매핑을 Map으로 미리 계산
   const colorMap = useMemo(() => {
@@ -41,7 +30,7 @@ const ScheduleTable = memo(({ tableId, schedules, onScheduleTimeClick, onDeleteB
   return (
     <Box
       position="relative"
-      outline={activeTableId === tableId ? "5px dashed" : undefined}
+      outline={draggingTableId === tableId ? "5px dashed" : undefined}
       outlineColor="blue.300"
     >
       <Grid

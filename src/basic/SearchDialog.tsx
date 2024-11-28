@@ -30,7 +30,7 @@ interface Props {
 }
 
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
-  const { setSchedulesMap } = useScheduleContext();
+  const { addSchedules } = useScheduleContext();
 
   const { lectures, isLoading, error } = useLectureData();
   const { searchOptions, updateSearchOptions } = useSearchOptions(searchInfo);
@@ -52,18 +52,15 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     [...new Set(lectures.map(lecture => lecture.major))]
   , [lectures]);
 
-  const addSchedule = useCallback((lecture: Lecture) => {
+  const handleAddLecture = useCallback((lecture: Lecture) => {
     if (!searchInfo) return;
     const schedules = parseSchedule(lecture.schedule).map(schedule => ({
       ...schedule,
       lecture
     }));
-    setSchedulesMap(prev => ({
-      ...prev,
-      [searchInfo.tableId]: [...prev[searchInfo.tableId], ...schedules]
-    }));
+    addSchedules(searchInfo.tableId, schedules);
     onClose();
-  }, [searchInfo, setSchedulesMap, onClose]);
+  }, [searchInfo, addSchedules, onClose]);
 
   const handleLoadMore = useCallback(() => {
     setPage(prevPage => Math.min(lastPage, prevPage + 1));
@@ -117,7 +114,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
               </Text>
               <LectureListTableBox
                 lectures={visibleLectures}
-                onAddLecture={addSchedule}
+                onAddLecture={handleAddLecture}
                 loaderRef={loaderRef}
                 wrapperRef={loaderWrapperRef}
               />
