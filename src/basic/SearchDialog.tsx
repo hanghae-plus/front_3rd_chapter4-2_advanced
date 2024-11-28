@@ -209,21 +209,20 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
             </HStack>
 
             <HStack spacing={4}>
-              <HStack spacing={4}>
-                <GradeFilter value={grades} onChange={handleChangeGrades} />
-                <DaysFilter value={days} onChange={handleChangeDays} />
-              </HStack>
-
-              <HStack spacing={4}>
-                <TimeFilter value={times} onChange={handleChangeTimes} />
-
-                <MajorFilter
-                  value={majors}
-                  onChange={handleChangeMajors}
-                  allMajors={allMajors}
-                />
-              </HStack>
+              <GradeFilter value={grades} onChange={handleChangeGrades} />
+              <DaysFilter value={days} onChange={handleChangeDays} />
             </HStack>
+
+            <HStack spacing={4}>
+              <TimeFilter value={times} onChange={handleChangeTimes} />
+
+              <MajorFilter
+                value={majors}
+                onChange={handleChangeMajors}
+                allMajors={allMajors}
+              />
+            </HStack>
+
             <Text align="right">검색결과: {filteredLectures.length}개</Text>
             <Box>
               <Table>
