@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Box,
   Button,
@@ -32,8 +32,9 @@ import {
 import { useScheduleContext } from "./ScheduleContext.tsx"
 import { Lecture } from "./types.ts"
 import { parseSchedule } from "./utils.ts"
-import axios from "axios"
+import axios, { AxiosResponse } from "axios"
 import { DAY_LABELS } from "./constants.ts"
+import MajorCheckbox from "./MajorCheckbox.tsx"
 
 interface Props {
   searchInfo: {
@@ -82,41 +83,60 @@ const TIME_SLOTS = [
 
 const PAGE_SIZE = 100
 
-// api 호출 결과를 캐싱하는 함수
-const createCache = () => {
-  const cache: Record<string, any> = {}
-
-  return async (key: string, fetcher: () => Promise<any>) => {
-    if (cache[key]) {
-      // 캐시가 있으면 캐시를 반환
-      return cache[key]
-    }
-    // 캐시가 없으면 API 호출 후 캐시에 저장
-    const data = await fetcher()
-    cache[key] = data
-    return data
-  }
-}
-
-// api 호출 결과를 캐싱하는 함수 생성
-const apiCache = createCache()
-
-const fetchMajors = async () =>
-  await apiCache("majors", () => axios.get<Lecture[]>("/schedules-majors.json"))
-const fetchLiberalArts = async () =>
-  await apiCache("liberalArts", () => axios.get<Lecture[]>("/schedules-liberal-arts.json"))
+const fetchMajors = () => axios.get<Lecture[]>("/schedules-majors.json")
+const fetchLiberalArts = () => axios.get<Lecture[]>("/schedules-liberal-arts.json")
 
 // TODO: 이 코드를 개선해서 API 호출을 최소화 해보세요 + Promise.all이 현재 잘못 사용되고 있습니다. 같이 개선해주세요.
-// 기존에는 await 으로 각각 호출을 기다리는 형태여서 await을 제거해 병렬 호출로 수정
-const fetchAllLectures = async () =>
-  Promise.all([
-    (console.log("API Call 1", performance.now()), fetchMajors()),
-    (console.log("API Call 2", performance.now()), fetchLiberalArts()),
-    (console.log("API Call 3", performance.now()), fetchMajors()),
-    (console.log("API Call 4", performance.now()), fetchLiberalArts()),
-    (console.log("API Call 5", performance.now()), fetchMajors()),
-    (console.log("API Call 6", performance.now()), fetchLiberalArts()),
-  ])
+const fetchAllLectures = (() => {
+  let cachedMajors: Promise<AxiosResponse<Lecture[], unknown>> | null = null
+  let cachedLiberalArts: Promise<AxiosResponse<Lecture[], unknown>> | null = null
+
+  const fetchAll = async () => {
+    const promises = [
+      (() => {
+        console.log("API Call 1", performance.now())
+        if (!cachedMajors) {
+          cachedMajors = fetchMajors()
+        }
+        return cachedMajors
+      })(),
+      (() => {
+        console.log("API Call 2", performance.now())
+        if (!cachedLiberalArts) {
+          cachedLiberalArts = fetchLiberalArts()
+        }
+        return cachedLiberalArts
+      })(),
+      (() => {
+        console.log("API Call 3", performance.now())
+        return cachedMajors
+      })(),
+      (() => {
+        console.log("API Call 4", performance.now())
+        return cachedLiberalArts
+      })(),
+      (() => {
+        console.log("API Call 5", performance.now())
+        return cachedMajors
+      })(),
+      (() => {
+        console.log("API Call 6", performance.now())
+        return cachedLiberalArts
+      })(),
+    ]
+
+    const results = await Promise.all(promises)
+    return results
+  }
+
+  // 캐시 초기화 메서드 추가
+  fetchAll.resetCache = () => {
+    cachedMajors = null
+    cachedLiberalArts = null
+  }
+
+  return fetchAll
+})()
 
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
@@ -134,7 +154,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     majors: [],
   })
 
-  const getFilteredLectures = () => {
+  const getFilteredLectures = useMemo(() => {
     const { query = "", credits, grades, days, times, majors } = searchOptions
     return lectures
       .filter(
@@ -146,49 +166,66 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
       .filter((lecture) => majors.length === 0 || majors.includes(lecture.major))
       .filter((lecture) => !credits || lecture.credits.startsWith(String(credits)))
       .filter((lecture) => {
-        if (days.length === 0) {
-          return true
-        }
+        if (days.length === 0) return true
         const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : []
         return schedules.some((s) => days.includes(s.day))
       })
       .filter((lecture) => {
-        if (times.length === 0) {
-          return true
-        }
+        if (times.length === 0) return true
         const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : []
         return schedules.some((s) => s.range.some((time) => times.includes(time)))
       })
-  }
+  }, [lectures, searchOptions])
 
-  const filteredLectures = getFilteredLectures()
-  const lastPage = Math.ceil(filteredLectures.length / PAGE_SIZE)
-  const visibleLectures = filteredLectures.slice(0, page * PAGE_SIZE)
-  const allMajors = [...new Set(lectures.map((lecture) => lecture.major))]
+  const lastPage = useMemo(
+    () => Math.ceil(getFilteredLectures.length / PAGE_SIZE),
+    [getFilteredLectures.length]
+  )
+  const visibleLectures = useMemo(
+    () => getFilteredLectures.slice(0, page * PAGE_SIZE),
+    [getFilteredLectures, page]
+  )
+  const allMajors = useMemo(
+    () => [...new Set(lectures.map((lecture) => lecture.major))],
+    [lectures]
+  )
 
-  const changeSearchOption = (field: keyof SearchOption, value: SearchOption[typeof field]) => {
-    setPage(1)
-    setSearchOptions({ ...searchOptions, [field]: value })
-    loaderWrapperRef.current?.scrollTo(0, 0)
-  }
+  const changeSearchOption = useCallback(
+    (field: keyof SearchOption, value: SearchOption[typeof field]) => {
+      setPage(1)
+      setSearchOptions((prev) => ({ ...prev, [field]: value }))
+      loaderWrapperRef.current?.scrollTo(0, 0)
+    },
+    []
+  )
 
-  const addSchedule = (lecture: Lecture) => {
-    if (!searchInfo) return
+  const handleMajorCheckboxChange = useCallback(
+    (values: SearchOption["majors"]) => {
+      changeSearchOption("majors", values)
+    },
+    [changeSearchOption]
+  )
 
-    const { tableId } = searchInfo
+  const addSchedule = useCallback(
+    (lecture: Lecture) => {
+      if (!searchInfo) return
 
-    const schedules = parseSchedule(lecture.schedule).map((schedule) => ({
-      ...schedule,
-      lecture,
-    }))
+      const { tableId } = searchInfo
 
-    setSchedulesMap((prev) => ({
-      ...prev,
-      [tableId]: [...prev[tableId], ...schedules],
-    }))
+      const schedules = parseSchedule(lecture.schedule).map((schedule) => ({
+        ...schedule,
+        lecture,
+      }))
 
-    onClose()
-  }
+      setSchedulesMap((prev) => ({
+        ...prev,
+        [tableId]: [...prev[tableId], ...schedules],
+      }))
+
+      onClose()
+    },
+    [searchInfo, setSchedulesMap, onClose]
+  )
 
   useEffect(() => {
     const start = performance.now()
@@ -375,17 +412,23 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                     p={2}
                   >
                     {allMajors.map((major) => (
-                      <Box key={major}>
-                        <Checkbox key={major} size="sm" value={major}>
-                          {major.replace(/<p>/gi, " ")}
-                        </Checkbox>
-                      </Box>
+                      <MajorCheckbox
+                        key={major}
+                        major={major}
+                        onChange={() => handleMajorCheckboxChange}
+                      />
+
+                      // <Box key={major}>
+                      //   <Checkbox key={major} size="sm" value={major}>
+                      //     {major.replace(/<p>/gi, ' ')}
+                      //   </Checkbox>
+                      // </Box>
                     ))}
                   </Stack>
                 </CheckboxGroup>
               </FormControl>
             </HStack>
-            <Text align="right">검색결과: {filteredLectures.length}개</Text>
+            <Text align="right">검색결과: {getFilteredLectures.length}개</Text>
             <Box>
               <Table>
                 <Thead>
