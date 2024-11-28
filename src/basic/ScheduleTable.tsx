@@ -2,7 +2,7 @@ import { Box, Grid } from '@chakra-ui/react';
 import { CellSize, DAY_LABELS } from "./constants.ts";
 import { Schedule } from "./types.ts";
 import { useDndContext } from "@dnd-kit/core";
-import { Fragment, useMemo } from "react";
+import { Fragment, memo, useMemo } from "react";
 import { GridHeader } from '../schedule/ui/GridHeader.tsx';
 import { TimeCell } from '../schedule/ui/TimeCell.tsx';
 import { ScheduleCell } from '../schedule/ui/ScheduleCell.tsx';
@@ -16,8 +16,7 @@ interface Props {
   onDeleteButtonClick?: (timeInfo: { day: string, time: number }) => void;
 }
 
-const ScheduleTable = ({ tableId, schedules, onScheduleTimeClick, onDeleteButtonClick }: Props) => {
-
+const ScheduleTable = memo(({ tableId, schedules, onScheduleTimeClick, onDeleteButtonClick }: Props) => {
 
   const dndContext = useDndContext();
 
@@ -83,7 +82,7 @@ const ScheduleTable = ({ tableId, schedules, onScheduleTimeClick, onDeleteButton
       ))}
     </Box>
   );
-};
+});
 
 
 
