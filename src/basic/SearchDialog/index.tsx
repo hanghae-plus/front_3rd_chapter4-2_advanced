@@ -29,11 +29,11 @@ import {
 	VStack,
 	Wrap,
 } from "@chakra-ui/react";
-import { useScheduleContext } from "./ScheduleContext.tsx";
-import { Lecture } from "./types.ts";
-import { parseSchedule } from "./utils.ts";
+import { useScheduleContext } from "../ScheduleContext.tsx";
+import { Lecture } from "../types.ts";
+import { parseSchedule } from "../utils.ts";
 import axios, { AxiosResponse } from "axios";
-import { DAY_LABELS } from "./constants.ts";
+import { DAY_LABELS } from "../constants.ts";
 
 interface Props {
 	searchInfo: {
