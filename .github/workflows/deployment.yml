@@ -3,7 +3,7 @@ name: Deploy React Project to S3 and invalidate CloudFront
 on:
   push:
     branches:
-      - master
+      - main
   workflow_dispatch:
 
 jobs:
