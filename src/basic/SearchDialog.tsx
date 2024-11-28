@@ -123,7 +123,7 @@ const fetchAllLectures = async () =>
 
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
-  const { setSchedulesMap } = useScheduleContext();
+  const { addSchedule } = useScheduleContext();
 
   const loaderWrapperRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
@@ -175,13 +175,10 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
         );
       });
   }, [lectures, searchOptions]);
-  const lastPage = useMemo(() => {
-    console.log("lastPage 계산 시작", {
-      filteredLectures,
-      PAGE_SIZE,
-    });
-    return Math.ceil(filteredLectures.length / PAGE_SIZE);
-  }, [filteredLectures]);
+  const lastPage = useMemo(
+    () => Math.ceil(filteredLectures.length / PAGE_SIZE),
+    [filteredLectures]
+  );
   const visibleLectures = useMemo(
     () => filteredLectures.slice(0, page * PAGE_SIZE),
     [filteredLectures, page]
@@ -197,7 +194,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     []
   );
 
-  const addSchedule = (lecture: Lecture) => {
+  const handleAddSchedule = (lecture: Lecture) => {
     if (!searchInfo) return;
 
     const { tableId } = searchInfo;
@@ -207,10 +204,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
       lecture,
     }));
 
-    setSchedulesMap((prev) => ({
-      ...prev,
-      [tableId]: [...prev[tableId], ...schedules],
-    }));
+    addSchedule(tableId, schedules);
 
     onClose();
   };
@@ -405,7 +399,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
               <Box overflowY="auto" maxH="500px" ref={loaderWrapperRef}>
                 <LectureTable
                   visibleLectures={visibleLectures}
-                  addSchedule={addSchedule}
+                  addSchedule={handleAddSchedule}
                 />
                 <Box ref={loaderRef} h="20px" />
               </Box>
