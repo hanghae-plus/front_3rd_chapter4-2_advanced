@@ -1,7 +1,8 @@
 import { Button, ButtonGroup, Flex, Heading, Stack } from "@chakra-ui/react";
 import ScheduleTable from "./ScheduleTable.tsx";
-import { useTableSchedule } from "./ScheduleContext";
-import ScheduleDndProvider from './ScheduleDndProvider.tsx'
+import { useTableSchedule } from "./context/ScheduleContext";
+import ScheduleDndProvider from './provider/ScheduleDndProvider';
+import { TableScheduleProvider } from './provider/TableScheduleProvider';
 
 interface Props {
   tableId: string;
@@ -11,19 +12,18 @@ interface Props {
   canRemove: boolean;
   onSearchDialogOpen: (info?: { day?: string; time?: number }) => void;
 }
-  
 
-export const ScheduleTableWrapper = ({ 
+
+const TableContent = ({ 
   tableId, 
-  index, 
+  index,
   onDuplicate, 
   onRemove, 
   canRemove,
-  onSearchDialogOpen
+  onSearchDialogOpen 
 }: Props) => {
-  const { schedules, updateTableSchedules } = useTableSchedule(tableId); 
+  const { schedules, updateTableSchedules } = useTableSchedule(tableId);
 
-  
   return (
     <ScheduleDndProvider tableId={tableId}>
       <Stack width="600px">
@@ -52,10 +52,18 @@ export const ScheduleTableWrapper = ({
             const newSchedules = schedules.filter(
               schedule => schedule.day !== day || !schedule.range.includes(time)
             );
-            updateTableSchedules(newSchedules); 
+            updateTableSchedules(newSchedules);
           }}
         />
       </Stack>
-      </ScheduleDndProvider>
+    </ScheduleDndProvider>
+  );
+};
+
+export const ScheduleTableWrapper = (props: Props) => {
+  return (
+    <TableScheduleProvider tableId={props.tableId}>
+      <TableContent {...props} />
+    </TableScheduleProvider>
   );
 };

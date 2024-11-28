@@ -9,17 +9,19 @@ import { CellSize, DAY_LABELS, 분 } from "./constants.ts";
 import { Schedule } from "./types.ts";
 import { fill2, parseHnM } from "./utils.ts";
 import { useDndContext } from "@dnd-kit/core";
-import { Fragment, memo, useMemo } from "react";
-import { useTableSchedule } from './ScheduleContext';
+import React, { Fragment, memo, useMemo } from "react";
+// import { useTableContext } from './context/TableContext';
 import { DraggableSchedule } from './DraggableSchedule';
-// import ScheduleDndProvider from './ScheduleDndProvider';
+import { TableScheduleProvider } from './provider/TableScheduleProvider';
+import ScheduleDndProvider from './provider/ScheduleDndProvider';
+import {useScheduleContext} from './context/ScheduleContext.tsx'
 
 interface Props {
   tableId: string;
   onScheduleTimeClick?: (timeInfo: { day: string, time: number }) => void;
   onDeleteButtonClick?: (timeInfo: { day: string, time: number }) => void;
- }
- 
+}
+
 
  const TIMES = [
   ...Array(18)
@@ -33,6 +35,58 @@ interface Props {
     .map((v) => `${parseHnM(v)}~${parseHnM(v + 50 * 분)}`),
  ] as const;
  
+
+
+const ScheduleTableContent = memo(({ tableId, onScheduleTimeClick, onDeleteButtonClick }: Props) => {
+  const { tables } = useScheduleContext();
+  const schedules = React.useMemo(() => tables[tableId] || [], [tables, tableId]);
+  const dndContext = useDndContext();
+  
+
+  const activeTableId = useMemo(() => {
+    const activeId = dndContext.active?.id;
+    if (activeId) {
+      return String(activeId).split(":")[0];
+    }
+    return null;
+  }, [dndContext.active?.id]);
+
+  const getColor = useMemo(() => {
+    const colors = ["#fdd", "#ffd", "#dff", "#ddf", "#fdf", "#dfd"];
+    const lectures = [...new Set(schedules.map(({ lecture }) => lecture.id))];
+    return (lectureId: string) => colors[lectures.indexOf(lectureId) % colors.length];
+  }, [schedules]);
+ 
+  return (
+    
+    <Box
+      position="relative"
+      outline={activeTableId === tableId ? "5px dashed" : undefined}
+      outlineColor="blue.300"
+    >
+      <Grid
+        templateColumns={`120px repeat(${DAY_LABELS.length}, ${CellSize.WIDTH}px)`}
+        templateRows={`40px repeat(${TIMES.length}, ${CellSize.HEIGHT}px)`}
+        bg="white"
+        fontSize="sm"
+        textAlign="center"
+        outline="1px solid"
+        outlineColor="gray.300"
+      >
+        <DayHeaders />
+        <TimeGrid onCellClick={onScheduleTimeClick} />
+      </Grid>
+
+      <ScheduleItems
+        schedules={schedules}
+        tableId={tableId}
+        getColor={getColor}
+        onDeleteButtonClick={onDeleteButtonClick}
+      />
+    </Box>
+    
+  );
+ });
 
 
  const ScheduleItems = memo(({ 
@@ -63,7 +117,6 @@ interface Props {
   </>
 
  ));
- 
  
 
  const DayHeaders = memo(() => (
@@ -117,54 +170,14 @@ const TimeGrid = memo(({ onCellClick }: { onCellClick?: Props['onScheduleTimeCli
 });
 
 
- 
-const ScheduleTable = memo(({ tableId, onScheduleTimeClick, onDeleteButtonClick }: Props) => {
-  const { schedules } = useTableSchedule(tableId);
-  const dndContext = useDndContext();
- 
-  const activeTableId = useMemo(() => {
-    const activeId = dndContext.active?.id;
-    if (activeId) {
-      return String(activeId).split(":")[0];
-    }
-    return null;
-  }, [dndContext.active?.id]);
- 
-  const getColor = useMemo(() => {
-    const colors = ["#fdd", "#ffd", "#dff", "#ddf", "#fdf", "#dfd"];
-    const lectures = [...new Set(schedules.map(({ lecture }) => lecture.id))];
-    return (lectureId: string) => colors[lectures.indexOf(lectureId) % colors.length];
-  }, [schedules]);
- 
+const ScheduleTable = memo(({ tableId, ...props }: Props) => {
   return (
-    
-      <Box
-        position="relative"
-        outline={activeTableId === tableId ? "5px dashed" : undefined}
-        outlineColor="blue.300"
-      >
-        <Grid
-          templateColumns={`120px repeat(${DAY_LABELS.length}, ${CellSize.WIDTH}px)`}
-          templateRows={`40px repeat(${TIMES.length}, ${CellSize.HEIGHT}px)`}
-          bg="white"
-          fontSize="sm"
-          textAlign="center"
-          outline="1px solid"
-          outlineColor="gray.300"
-        >
-          <DayHeaders />
-          <TimeGrid onCellClick={onScheduleTimeClick} />
-        </Grid>
-  
-        <ScheduleItems
-          schedules={schedules}
-          tableId={tableId}
-          getColor={getColor}
-          onDeleteButtonClick={onDeleteButtonClick}
-        />
-      </Box>
-    
+    <TableScheduleProvider tableId={tableId}>
+      <ScheduleDndProvider tableId={tableId}> 
+        <ScheduleTableContent tableId={tableId} {...props} />
+      </ScheduleDndProvider>
+    </TableScheduleProvider>
   );
- });
+});
  
  export default ScheduleTable;

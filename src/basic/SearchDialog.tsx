@@ -29,7 +29,7 @@ import {
   VStack,
   Wrap,
 } from '@chakra-ui/react';
-import { useScheduleContext } from './ScheduleContext.tsx';
+import { useScheduleContext } from './context/ScheduleContext.tsx';
 import { Lecture } from './types.ts';
 import { parseSchedule } from "./utils.ts";
 import axios from "axios";

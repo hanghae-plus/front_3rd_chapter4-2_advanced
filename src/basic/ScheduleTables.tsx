@@ -1,7 +1,7 @@
 import { Flex } from "@chakra-ui/react";
-import { useTableIds } from "./ScheduleContext.tsx";
+import { useTableIds } from "./context/ScheduleContext.tsx";
 import SearchDialog from "./SearchDialog.tsx";
-import { useState } from "react";
+import React, { useState } from "react";
 import { ScheduleTableWrapper } from "./ScheduleTableWrapper";
 
 interface SearchInfo {
@@ -9,6 +9,8 @@ interface SearchInfo {
   day?: string;
   time?: number;
 }
+
+const MemoizedTableWrapper = React.memo(ScheduleTableWrapper);
 
 export const ScheduleTables = () => {
   const { tableIds, duplicateTable, removeTable } = useTableIds();
@@ -18,7 +20,7 @@ export const ScheduleTables = () => {
     <>
       <Flex w="full" gap={6} p={6} flexWrap="wrap">
         {tableIds.map((id, index) => (
-          <ScheduleTableWrapper
+          <MemoizedTableWrapper
             key={id}
             tableId={id}
             index={index}
