@@ -23,10 +23,10 @@ import {
 } from '@chakra-ui/react';
 import axios from 'axios';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DAY_LABELS } from '../constants.ts';
-import { useScheduleContext } from '../ScheduleContext.tsx';
-import { Lecture } from '../types.ts';
-import { createCachedFetch, parseSchedule } from '../utils.ts';
+import { DAY_LABELS } from '../../constants/constants.ts';
+import { useScheduleContext } from '../../contexts/ScheduleContext.tsx';
+import { Lecture } from '../../types.ts';
+import { createCachedFetch, parseSchedule } from '../../utils.ts';
 import { LectureRow } from './LectureRow.tsx';
 import { MajorControl } from './MajorControl.tsx';
 import { TimeSlotControl } from './TimeSlotControl.tsx';

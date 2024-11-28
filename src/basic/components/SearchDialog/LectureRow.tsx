@@ -1,6 +1,6 @@
 import { Button, Td, Tr } from '@chakra-ui/react';
 import { memo } from 'react';
-import { Lecture } from '../types';
+import { Lecture } from '../../types.ts';
 
 type Props = {
   lecture: Lecture;

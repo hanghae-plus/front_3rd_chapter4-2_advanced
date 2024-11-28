@@ -4,8 +4,8 @@ import React, {
   useContext,
   useState,
 } from 'react';
-import { Schedule } from './types.ts';
-import dummyScheduleMap from './dummyScheduleMap.ts';
+import dummyScheduleMap from '../constants/dummyScheduleMap.ts';
+import { Schedule } from '../types.ts';
 
 interface ScheduleContextType {
   schedulesMap: Record<string, Schedule[]>;

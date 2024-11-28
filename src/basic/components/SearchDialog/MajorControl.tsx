@@ -11,7 +11,7 @@ import {
   Wrap,
 } from '@chakra-ui/react';
 import { memo, useMemo } from 'react';
-import { Lecture } from '../types';
+import { Lecture } from '../../types.ts';
 import { SearchOption } from './types';
 
 const MajorCheckbox = memo(({ major }: { major: string }) => (
