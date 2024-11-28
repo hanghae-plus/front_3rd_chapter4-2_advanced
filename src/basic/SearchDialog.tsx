@@ -1,35 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Box,
-  HStack,
   Modal,
   ModalBody,
   ModalCloseButton,
   ModalContent,
   ModalHeader,
   ModalOverlay,
-  Table,
-  Tbody,
   Text,
-  Th,
-  Thead,
-  Tr,
   VStack,
 } from '@chakra-ui/react';
 import { useScheduleContext } from './ScheduleContext.tsx';
 import { Lecture } from './types.ts';
 import { parseSchedule } from "./utils.ts";
-import { LectureTableRow } from '../lecture/ui/LectureTableRow.tsx';
 import { PAGE_SIZE } from '../page/model/constants.ts';
-import { FilterCheckboxGroup } from '../search/ui/FilterCheckboxGroup.tsx';
-import { ComplexFilterGroup } from '../search/ui/ComplexFilterGroup.tsx';
-import { DAY_OPTIONS, GRADE_OPTIONS, TIME_SLOTS } from '../search/model/constants.ts';
-import { SearchInput } from '../search/ui/SearchInput.tsx';
-import { CreditSelect } from '../search/ui/CreditSelect.tsx';
 import { useFilteredLectures } from '../lecture/model/useFilteredLecture.ts';
 import { useInfiniteScroll } from '../page/model/useInfiniteScroll.ts';
 import { SearchOption } from '../search/model/Search.ts';
 import { useLectureData } from '../lecture/model/useLectureData.ts';
+import { SearchForm } from '../search/ui/SearchForm.tsx';
+import { LectureListTableBox } from '../lecture/ui/LectureListTableBox.tsx';
 
 interface Props {
   searchInfo: {
@@ -137,87 +126,20 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
         ) : (
           <ModalBody>
             <VStack spacing={4} align="stretch">
-              <HStack spacing={4}>
-                <SearchInput
-                  value={searchOptions.query}
-                  onChange={(value) => changeSearchOption('query', value)}
-                />
-                <CreditSelect
-                  value={searchOptions.credits}
-                  onChange={(value) => changeSearchOption('credits', value)}
-                />
-              </HStack>
-
-              <HStack spacing={4}>
-                <FilterCheckboxGroup
-                  label="학년"
-                  name="grades"
-                  options={GRADE_OPTIONS}
-                  value={searchOptions.grades}
-                  onChange={(values) => changeSearchOption('grades', values.map(Number))}
-                />
-
-                <FilterCheckboxGroup
-                  label="요일"
-                  name="days"
-                  options={DAY_OPTIONS}
-                  value={searchOptions.days}
-                  onChange={(values) => changeSearchOption('days', values as string[])}
-                />
-              </HStack>
-
-              <HStack spacing={4}>
-                <ComplexFilterGroup
-                  label="시간"
-                  options={TIME_SLOTS}
-                  value={searchOptions.times}
-                  onChange={(values) => changeSearchOption('times', values.map(Number))}
-                  tagLabelFormatter={(time) => `${time}교시`}
-                  checkboxLabelFormatter={(option) => `${option.id}교시(${option.label})`}
-                />
-
-                <ComplexFilterGroup
-                  label="전공"
-                  options={allMajors.map(major => ({ id: major, label: major }))}
-                  value={searchOptions.majors}
-                  onChange={(values) => changeSearchOption('majors', values as string[])}
-                  tagLabelFormatter={(major) => String(major).split("<p>").pop() || ''}
-                  checkboxLabelFormatter={(option) => option.label.replace(/<p>/gi, ' ')}
-                />
-              </HStack>
+              <SearchForm
+                searchOptions={searchOptions}
+                onChangeSearchOption={changeSearchOption}
+                allMajors={allMajors}
+              />
               <Text align="right">
                 검색결과: {filteredLectures.length}개
               </Text>
-              <Box>
-                <Table>
-                  <Thead>
-                    <Tr>
-                      <Th width="100px">과목코드</Th>
-                      <Th width="50px">학년</Th>
-                      <Th width="200px">과목명</Th>
-                      <Th width="50px">학점</Th>
-                      <Th width="150px">전공</Th>
-                      <Th width="150px">시간</Th>
-                      <Th width="80px"></Th>
-                    </Tr>
-                  </Thead>
-                </Table>
-
-                <Box overflowY="auto" maxH="500px" ref={loaderWrapperRef}>
-                  <Table size="sm" variant="striped">
-                    <Tbody>
-                      {visibleLectures.map((lecture, index) => (
-                        <LectureTableRow 
-                          key={`${lecture.id}-${index}`}
-                          lecture={lecture}
-                          onAddSchedule={addSchedule}
-                        />
-                      ))}
-                    </Tbody>
-                  </Table>
-                  <Box ref={loaderRef} h="20px"/>
-                </Box>
-              </Box>
+              <LectureListTableBox
+                lectures={visibleLectures}
+                onAddLecture={addSchedule}
+                loaderRef={loaderRef}
+                wrapperRef={loaderWrapperRef}
+              />
             </VStack>
           </ModalBody>
         )}
