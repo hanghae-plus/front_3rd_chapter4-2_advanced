@@ -1,6 +1,6 @@
 import { Flex, GridItem, Text } from "@chakra-ui/react";
 import { memo } from "react";
-import { fill2 } from "../basic/utils";
+import { fill2 } from "../../basic/utils";
 
 export const TimeCell = memo(({ 
   time, 

@@ -2,7 +2,6 @@ import {
   Box,
   Button,
   Grid,
-  GridItem,
   Popover,
   PopoverArrow,
   PopoverBody,
@@ -17,9 +16,9 @@ import { parseHnM } from "./utils.ts";
 import { useDndContext, useDraggable } from "@dnd-kit/core";
 import { CSS } from '@dnd-kit/utilities';
 import { ComponentProps, Fragment, memo, useMemo } from "react";
-import { GridHeader } from '../schedule/GridHeader.tsx';
-import { TimeCell } from '../schedule/TimeCell.tsx';
-import { ScheduleCell } from '../schedule/ScheduleCell.tsx';
+import { GridHeader } from '../schedule/ui/GridHeader.tsx';
+import { TimeCell } from '../schedule/ui/TimeCell.tsx';
+import { ScheduleCell } from '../schedule/ui/ScheduleCell.tsx';
 
 interface Props {
   tableId: string;

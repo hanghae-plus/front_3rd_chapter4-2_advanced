@@ -1,6 +1,6 @@
 import { GridItem, Flex, Text } from "@chakra-ui/react";
 import { memo } from "react";
-import { DAY_LABELS } from "../basic/constants";
+import { DAY_LABELS } from "../../basic/constants";
 
 export const GridHeader = memo(() => (
   <>
