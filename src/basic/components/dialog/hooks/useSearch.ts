@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Lecture, SearchOption } from "../../../types";
 import { filterByCredits, filterByDays, filterByGrades, filterByMajors, filterByQuery, filterByTimes } from "../../../lib/utils/searchDialogUtils";
 import { lazyFilter } from "../../../lib/utils/lazyFilter";
+import { useDebounce } from "../../../hooks/useDebounce";
 
 export const useSearch = (lectures: Lecture[]) => {
   const [searchOptions, setSearchOptions] = useState<SearchOption>({
@@ -12,14 +13,16 @@ export const useSearch = (lectures: Lecture[]) => {
     majors: [],
   });
 
+  const debounceOptions = useDebounce(searchOptions, 300);
+
   const filters = useMemo(() => [
-    filterByQuery(searchOptions.query || ""),
-    filterByGrades(searchOptions.grades),
-    filterByMajors(searchOptions.majors),
-    filterByCredits(searchOptions?.credits || 0),
-    filterByDays(searchOptions.days),
-    filterByTimes(searchOptions.times),
-  ], [searchOptions]);
+    filterByQuery(debounceOptions.query || ""),
+    filterByGrades(debounceOptions.grades),
+    filterByMajors(debounceOptions.majors),
+    filterByCredits(debounceOptions?.credits || 0),
+    filterByDays(debounceOptions.days),
+    filterByTimes(debounceOptions.times),
+  ], [debounceOptions]);
 
   const filteredLectures = useMemo(() => {
     return [...lazyFilter(lectures, filters)]
@@ -29,5 +32,6 @@ export const useSearch = (lectures: Lecture[]) => {
     searchOptions,
     setSearchOptions,
     filteredLectures,
+    isDebouncing: debounceOptions !== searchOptions,
   }
 }

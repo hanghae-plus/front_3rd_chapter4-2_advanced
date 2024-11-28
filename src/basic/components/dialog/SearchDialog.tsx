@@ -40,7 +40,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
   const { setSchedulesMap } = useScheduleContext();
 
   const lectures = useLectures();
-  const { searchOptions, setSearchOptions, filteredLectures } = useSearch(lectures);
+  const { searchOptions, setSearchOptions, filteredLectures, isDebouncing } = useSearch(lectures);
   const { 
     renderedRows,
     loaderRef,
@@ -116,6 +116,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
               renderedRows={renderedRows} 
               loaderRef={loaderRef} 
               loaderWrapperRef={loaderWrapperRef}
+              isLoading={isDebouncing}
             />
           </VStack>
         </ModalBody>
