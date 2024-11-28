@@ -18,7 +18,6 @@ import { fill2, parseHnM } from "./utils.ts";
 import { useDndContext, useDraggable } from "@dnd-kit/core";
 import { CSS } from '@dnd-kit/utilities';
 import { ComponentProps, Fragment, memo, useCallback, useMemo } from "react";
-import ScheduleDndProvider from "./ScheduleDndProvider.tsx";
 
 interface Props {
   tableId: string;
@@ -71,54 +70,52 @@ const ScheduleTable = ({ tableId, schedules, onScheduleTimeClick, onDeleteButton
   }, [onDeleteButtonClick])
 
   return (
-    <ScheduleDndProvider>
-      <Box
-        position="relative"
-        outline={activeTableId === tableId ? "5px dashed" : undefined}
-        outlineColor="blue.300"
+    <Box
+      position="relative"
+      outline={activeTableId === tableId ? "5px dashed" : undefined}
+      outlineColor="blue.300"
+    >
+      <Grid
+        templateColumns={`120px repeat(${DAY_LABELS.length}, ${CellSize.WIDTH}px)`}
+        templateRows={`40px repeat(${TIMES.length}, ${CellSize.HEIGHT}px)`}
+        bg="white"
+        fontSize="sm"
+        textAlign="center"
+        outline="1px solid"
+        outlineColor="gray.300"
       >
-        <Grid
-          templateColumns={`120px repeat(${DAY_LABELS.length}, ${CellSize.WIDTH}px)`}
-          templateRows={`40px repeat(${TIMES.length}, ${CellSize.HEIGHT}px)`}
-          bg="white"
-          fontSize="sm"
-          textAlign="center"
-          outline="1px solid"
-          outlineColor="gray.300"
-        >
-          <ScheduleTableHeader />
-          
-          {TIMES.map((time, timeIndex) => (
-            <Fragment key={`시간-${timeIndex + 1}`}>
-              <TimeCell 
-                time={time}
+        <ScheduleTableHeader />
+        
+        {TIMES.map((time, timeIndex) => (
+          <Fragment key={`시간-${timeIndex + 1}`}>
+            <TimeCell 
+              time={time}
+              timeIndex={timeIndex}
+            />
+
+            {DAY_LABELS.map((day) => (
+              <DayCell 
+                key={`${day}-${timeIndex + 2}`}
+                day={day}
+                bg={timeIndex > 17 ? 'gray.100' : 'white'}
                 timeIndex={timeIndex}
+                onClick={handleClickDayCell}
               />
-
-              {DAY_LABELS.map((day) => (
-                <DayCell 
-                  key={`${day}-${timeIndex + 2}`}
-                  day={day}
-                  bg={timeIndex > 17 ? 'gray.100' : 'white'}
-                  timeIndex={timeIndex}
-                  onClick={handleClickDayCell}
-                />
-              ))}
-            </Fragment>
-          ))}
-        </Grid>
-
-        {schedules.map((schedule, index) => (
-          <DraggableSchedule
-            key={`${schedule.lecture.title}-${index}`}
-            id={`${tableId}:${index}`}
-            data={schedule}
-            bg={getColor(schedule.lecture.id)}
-            onDeleteButtonClick={handleDeleteSchedule}
-          />
+            ))}
+          </Fragment>
         ))}
-      </Box>
-    </ScheduleDndProvider>
+      </Grid>
+
+      {schedules.map((schedule, index) => (
+        <DraggableSchedule
+          key={`${schedule.lecture.title}-${index}`}
+          id={`${tableId}:${index}`}
+          data={schedule}
+          bg={getColor(schedule.lecture.id)}
+          onDeleteButtonClick={handleDeleteSchedule}
+        />
+      ))}
+    </Box>
   );
 };
 
