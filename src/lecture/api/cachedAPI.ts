@@ -1,21 +1,15 @@
-import axios from "axios";
-
 type AxiosResponse<T> = { data: T };
 
-export const createCachedFetch = <T,>() => {
-  const cache = new Map<string, Promise<AxiosResponse<T>>>();
-  
-  const fetchWithCache = (key: string, fetchFn: () => Promise<AxiosResponse<T>>) => {
-    if (!cache.has(key)) {
-      cache.set(key, fetchFn().then(response => {
-        return response;
-      }));
-    }
-    return cache.get(key)!;
-  };
+export const createCachedFetch = <T,>(fetcher: () => Promise<AxiosResponse<T>>) => {
+  let cache: Promise<T> | null = null;
 
-  return {
-    fetchMajors: () => fetchWithCache('majors', () => axios.get<T>('/schedules-majors.json')),
-    fetchLiberalArts: () => fetchWithCache('liberal', () => axios.get<T>('/schedules-liberal-arts.json'))
+  return () => {
+    if (cache) {
+      return { data: cache };
+    }
+
+    const response = fetcher();
+    cache = response.then((res) => res.data);
+    return response;
   };
 };

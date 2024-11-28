@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Lecture } from "../../basic/types";
 import { createCachedFetch } from "../api/cachedAPI";
+import axios from "axios";
 
 interface UseLectureDataReturn {
   lectures: Lecture[];
@@ -9,10 +10,11 @@ interface UseLectureDataReturn {
 }
 
 // 개선된 방식 - 캐시를 사용한 효율적인 API 호출
-const { fetchMajors, fetchLiberalArts } = createCachedFetch<Lecture[]>();
+const fetchMajors = createCachedFetch(() => axios.get<Lecture[]>("/schedules-majors.json"));
+const fetchLiberalArts = createCachedFetch(() => axios.get<Lecture[]>("/schedules-majors.json"));
 const fetchAllLecturesEfficient = async () => {
   // 동일하게 6번 호출하지만, 캐시로 인해 실제로는 2번만 네트워크 요청
-  const results = await Promise.all([
+  const [majorsResponse, liberalArtsResponse] = await Promise.all([
     (console.log('API Call 1', performance.now()), await fetchMajors()),
     (console.log('API Call 2', performance.now()), await fetchLiberalArts()),
     (console.log('API Call 3', performance.now()), await fetchMajors()),
@@ -20,7 +22,10 @@ const fetchAllLecturesEfficient = async () => {
     (console.log('API Call 5', performance.now()), await fetchMajors()),
     (console.log('API Call 6', performance.now()), await fetchLiberalArts()),
   ]);
-  return results;
+  const majors = await majorsResponse.data;
+  const liberalArts = await liberalArtsResponse.data;
+
+  return [...majors, ...liberalArts];
 };
 
 export const useLectureData = (): UseLectureDataReturn => {
@@ -42,7 +47,7 @@ export const useLectureData = (): UseLectureDataReturn => {
         console.log('모든 API 호출 완료 ', end);
         console.log('API 호출에 걸린 시간(ms): ', end - start);
         
-        setLectures(results.flatMap(result => result.data));
+        setLectures(results);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch lectures'));
       } finally {
