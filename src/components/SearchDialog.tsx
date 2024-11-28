@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -98,58 +98,84 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     majors: [],
   });
 
-  const getFilteredLectures = () => {
-    const { query = "", credits, grades, days, times, majors } = searchOptions;
-    return lectures
-      .filter(
-        (lecture) =>
-          lecture.title.toLowerCase().includes(query.toLowerCase()) ||
-          lecture.id.toLowerCase().includes(query.toLowerCase())
-      )
-      .filter(
-        (lecture) => grades.length === 0 || grades.includes(lecture.grade)
-      )
-      .filter(
-        (lecture) => majors.length === 0 || majors.includes(lecture.major)
-      )
-      .filter(
-        (lecture) => !credits || lecture.credits.startsWith(String(credits))
-      )
-      .filter((lecture) => {
-        if (days.length === 0) {
-          return true;
-        }
-        const schedules = lecture.schedule
-          ? parseSchedule(lecture.schedule)
-          : [];
-        return schedules.some((s) => days.includes(s.day));
-      })
-      .filter((lecture) => {
-        if (times.length === 0) {
-          return true;
-        }
-        const schedules = lecture.schedule
-          ? parseSchedule(lecture.schedule)
-          : [];
-        return schedules.some((s) =>
-          s.range.some((time) => times.includes(time))
-        );
-      });
-  };
+  // lectures가 변경될 때만 majors 목록 계산
+  const allMajors = useMemo(
+    () => [...new Set(lectures.map((lecture) => lecture.major))],
+    [lectures]
+  );
 
-  const filteredLectures = getFilteredLectures();
-  const lastPage = Math.ceil(filteredLectures.length / PAGE_SIZE);
-  const visibleLectures = filteredLectures.slice(0, page * PAGE_SIZE);
-  const allMajors = [...new Set(lectures.map((lecture) => lecture.major))];
+  // 필터링 로직을 메모이제이션
+  const getFilteredLectures = useCallback(
+    (lectures: Lecture[], options: SearchOption) => {
+      const { query = "", credits, grades, days, times, majors } = options;
 
-  const changeSearchOption = (
-    field: keyof SearchOption,
-    value: SearchOption[typeof field]
-  ) => {
-    setPage(1);
-    setSearchOptions({ ...searchOptions, [field]: value });
-    loaderWrapperRef.current?.scrollTo(0, 0);
-  };
+      return lectures
+        .filter(
+          (lecture) =>
+            !query ||
+            lecture.title.toLowerCase().includes(query.toLowerCase()) ||
+            lecture.id.toLowerCase().includes(query.toLowerCase())
+        )
+        .filter(
+          (lecture) => grades.length === 0 || grades.includes(lecture.grade)
+        )
+        .filter(
+          (lecture) => majors.length === 0 || majors.includes(lecture.major)
+        )
+        .filter(
+          (lecture) => !credits || lecture.credits.startsWith(String(credits))
+        )
+        .filter((lecture) => {
+          if (days.length === 0) {
+            return true;
+          }
+          const schedules = lecture.schedule
+            ? parseSchedule(lecture.schedule)
+            : [];
+          return schedules.some((s) => days.includes(s.day));
+        })
+        .filter((lecture) => {
+          if (times.length === 0) {
+            return true;
+          }
+          const schedules = lecture.schedule
+            ? parseSchedule(lecture.schedule)
+            : [];
+          return schedules.some((s) =>
+            s.range.some((time) => times.includes(time))
+          );
+        });
+    },
+    []
+  ); // 필터링 로직 자체는 변경되지 않으므로 의존성 배열 비움
+
+  // lectures나 searchOptions가 변경될 때만 필터링 수행
+  const filteredLectures = useMemo(
+    () => getFilteredLectures(lectures, searchOptions),
+    [lectures, searchOptions, getFilteredLectures]
+  );
+
+  // lastPage 계산 메모이제이션
+  const lastPage = useMemo(
+    () => Math.ceil(filteredLectures.length / PAGE_SIZE),
+    [filteredLectures.length]
+  );
+
+  // 현재 페이지에 보여질 강의 목록만 계산
+  const visibleLectures = useMemo(
+    () => filteredLectures.slice(0, page * PAGE_SIZE),
+    [filteredLectures, page]
+  );
+
+  // 검색 옵션 변경 핸들러 메모이제이션
+  const changeSearchOption = useCallback(
+    (field: keyof SearchOption, value: SearchOption[typeof field]) => {
+      setPage(1);
+      setSearchOptions((prev) => ({ ...prev, [field]: value }));
+      loaderWrapperRef.current?.scrollTo(0, 0);
+    },
+    []
+  );
 
   const addSchedule = (lecture: Lecture) => {
     if (!searchInfo) return;
