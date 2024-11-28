@@ -66,6 +66,17 @@ const DraggableSchedule = memo(
 				</PopoverContent>
 			</Popover>
 		);
+	},
+	(prevProps, nextProps) => {
+		// 불필요한 리렌더링 방지를 위한 custom compare 함수
+		return (
+			prevProps.id === nextProps.id &&
+			prevProps.bg === nextProps.bg &&
+			prevProps.data.day === nextProps.data.day &&
+			prevProps.data.range.toString() === nextProps.data.range.toString() &&
+			prevProps.data.room === nextProps.data.room &&
+			prevProps.data.lecture.title === nextProps.data.lecture.title
+		);
 	}
 );
 

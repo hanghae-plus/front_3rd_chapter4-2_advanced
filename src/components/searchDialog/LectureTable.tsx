@@ -43,7 +43,7 @@ const LectureTable = ({
 	searchInfo,
 	onClose,
 }: Props) => {
-	const { setSchedulesMap } = useScheduleContext();
+	const { handleAdd } = useScheduleContext();
 
 	const addSchedule = useCallback(
 		(lecture: Lecture) => {
@@ -56,14 +56,11 @@ const LectureTable = ({
 				lecture,
 			}));
 
-			setSchedulesMap((prev) => ({
-				...prev,
-				[tableId]: [...prev[tableId], ...schedules],
-			}));
+			handleAdd({ tableId, schedules });
 
 			onClose();
 		},
-		[searchInfo, setSchedulesMap, onClose]
+		[searchInfo, handleAdd, onClose]
 	);
 
 	return (

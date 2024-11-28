@@ -1,5 +1,5 @@
 import { Flex, GridItem, Text } from "@chakra-ui/react";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { fill2 } from "../../basic/utils";
 import { DAY_LABELS } from "../../basic/constants";
 
@@ -35,27 +35,30 @@ const TimeRow = memo(({ time, timeIndex, onScheduleTimeClick }: Props) => {
 	);
 });
 
-const BlockItem = memo(
-	({
-		day,
-		timeIndex,
-		onScheduleTimeClick,
-	}: {
-		day: string;
-		timeIndex: number;
-		onScheduleTimeClick?: (timeInfo: { day: string; time: number }) => void;
-	}) => {
-		return (
-			<GridItem
-				borderWidth="1px 0 0 1px"
-				borderColor="gray.300"
-				bg={timeIndex > 17 ? "gray.100" : "white"}
-				cursor="pointer"
-				_hover={{ bg: "yellow.100" }}
-				onClick={() => onScheduleTimeClick?.({ day, time: timeIndex + 1 })}
-			/>
-		);
-	}
-);
+const BlockItem = ({
+	day,
+	timeIndex,
+	onScheduleTimeClick,
+}: {
+	day: string;
+	timeIndex: number;
+	onScheduleTimeClick?: (timeInfo: { day: string; time: number }) => void;
+}) => {
+	const handleClick = useMemo(
+		() => () => onScheduleTimeClick?.({ day, time: timeIndex + 1 }),
+		[day, timeIndex, onScheduleTimeClick]
+	);
+
+	return (
+		<GridItem
+			borderWidth="1px 0 0 1px"
+			borderColor="gray.300"
+			bg={timeIndex > 17 ? "gray.100" : "white"}
+			cursor="pointer"
+			_hover={{ bg: "yellow.100" }}
+			onClick={handleClick}
+		/>
+	);
+};
 
 export default TimeRow;

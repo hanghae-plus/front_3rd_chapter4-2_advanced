@@ -2,11 +2,12 @@ import { Box, Flex, Grid, GridItem, Text } from "@chakra-ui/react";
 import { CellSize, DAY_LABELS, 분 } from "./constants.ts";
 import { Schedule } from "./types.ts";
 import { parseHnM } from "./utils.ts";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import DayItem from "../components/scheduleTable/DayItem.tsx";
-import TimeRow from "../components/scheduleTable/TimeRow.tsx";
 import DraggableSchedule from "../components/scheduleTable/DraggableSchedule.tsx";
 import { useDndMonitor } from "@dnd-kit/core";
+import { useScheduleContext } from "./ScheduleContext.tsx";
+import TimeRow from "../components/scheduleTable/TimeRow.tsx";
 
 interface Props {
 	tableId: string;
@@ -38,55 +39,34 @@ const ScheduleTable = memo(
 			[schedules]
 		);
 
-		const [activeTableId, setActiveTableId] = useState<string | null>(null);
+		const [dragActiveTableId, setDragActiveTableId] = useState<string | null>(null);
+
+		const { updateSchedule } = useScheduleContext();
 
 		useDndMonitor({
 			onDragStart(event) {
-				const activeId = event.active.id;
-				if (activeId) {
-					setActiveTableId(String(activeId).split(":")[0]);
-				}
+				const [activeTableId] = (event.active.id as string).split(":");
+				if (activeTableId !== tableId) return;
+				setDragActiveTableId(activeTableId);
 			},
-			onDragEnd() {
-				setActiveTableId(null);
+			onDragEnd(event) {
+				const [activeTableId] = (event.active.id as string).split(":");
+				if (activeTableId !== tableId) return;
+				updateSchedule(event);
+				setDragActiveTableId(null);
 			},
 			onDragCancel() {
-				setActiveTableId(null);
+				setDragActiveTableId(null);
 			},
 		});
 
 		return (
 			<Box
 				position="relative"
-				outline={activeTableId === tableId ? "5px dashed" : undefined}
+				outline={dragActiveTableId === tableId ? "5px dashed" : undefined}
 				outlineColor="blue.300"
 			>
-				<Grid
-					templateColumns={`120px repeat(${DAY_LABELS.length}, ${CellSize.WIDTH}px)`}
-					templateRows={`40px repeat(${TIMES.length}, ${CellSize.HEIGHT}px)`}
-					bg="white"
-					fontSize="sm"
-					textAlign="center"
-					outline="1px solid"
-					outlineColor="gray.300"
-				>
-					<GridItem key="교시" borderColor="gray.300" bg="gray.100">
-						<Flex justifyContent="center" alignItems="center" h="full" w="full">
-							<Text fontWeight="bold">교시</Text>
-						</Flex>
-					</GridItem>
-					{DAY_LABELS.map((day) => (
-						<DayItem key={day} day={day} />
-					))}
-					{TIMES.map((time, timeIndex) => (
-						<TimeRow
-							key={`시간-${timeIndex + 1}`}
-							time={time}
-							timeIndex={timeIndex}
-							onScheduleTimeClick={onScheduleTimeClick}
-						/>
-					))}
-				</Grid>
+				<ScheduleTableGrid onScheduleTimeClick={onScheduleTimeClick} />
 
 				{schedules.map((schedule, index) => (
 					<DraggableSchedule
@@ -103,6 +83,49 @@ const ScheduleTable = memo(
 					/>
 				))}
 			</Box>
+		);
+	}
+);
+
+const ScheduleTableGrid = memo(
+	({
+		onScheduleTimeClick,
+	}: {
+		onScheduleTimeClick?: (timeInfo: { day: string; time: number }) => void;
+	}) => {
+		const TimeRowWrapper = useMemo(
+			() =>
+				TIMES.map((time, timeIndex) => (
+					<TimeRow
+						key={`시간-${timeIndex + 1}`}
+						time={time}
+						timeIndex={timeIndex}
+						onScheduleTimeClick={onScheduleTimeClick}
+					/>
+				)),
+			[]
+		);
+
+		return (
+			<Grid
+				templateColumns={`120px repeat(${DAY_LABELS.length}, ${CellSize.WIDTH}px)`}
+				templateRows={`40px repeat(${TIMES.length}, ${CellSize.HEIGHT}px)`}
+				bg="white"
+				fontSize="sm"
+				textAlign="center"
+				outline="1px solid"
+				outlineColor="gray.300"
+			>
+				<GridItem key="교시" borderColor="gray.300" bg="gray.100">
+					<Flex justifyContent="center" alignItems="center" h="full" w="full">
+						<Text fontWeight="bold">교시</Text>
+					</Flex>
+				</GridItem>
+				{DAY_LABELS.map((day) => (
+					<DayItem key={day} day={day} />
+				))}
+				{TimeRowWrapper}
+			</Grid>
 		);
 	}
 );
