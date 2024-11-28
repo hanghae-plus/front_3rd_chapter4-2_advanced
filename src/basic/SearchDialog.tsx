@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import {
   Box,
-  Button,
   Checkbox,
   CheckboxGroup,
   FormControl,
@@ -16,24 +15,18 @@ import {
   ModalOverlay,
   Select,
   Stack,
-  Table,
   Tag,
   TagCloseButton,
   TagLabel,
-  Tbody,
-  Td,
   Text,
-  Th,
-  Thead,
-  Tr,
   VStack,
   Wrap,
 } from "@chakra-ui/react";
-import { useScheduleContext } from "./ScheduleContext.tsx";
 import { Lecture } from "./types.ts";
 import { parseSchedule } from "./utils.ts";
 import axios from "axios";
 import { DAY_LABELS } from "./constants.ts";
+import LectureTable from "./LectureTable.tsx";
 
 interface Props {
   searchInfo: {
@@ -122,8 +115,6 @@ const fetchAllLectures = async () =>
 
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
-  const { setSchedulesMap } = useScheduleContext();
-
   const loaderWrapperRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
   const [lectures, setLectures] = useState<Lecture[]>([]);
@@ -184,23 +175,6 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
       loaderWrapperRef.current?.scrollTo(0, 0);
     },
     []
-  );
-
-  const addSchedule = useCallback(
-    (lecture: Lecture) => {
-      if (!searchInfo) return;
-      const { tableId } = searchInfo;
-      const schedules = parseSchedule(lecture.schedule).map((schedule) => ({
-        ...schedule,
-        lecture,
-      }));
-      setSchedulesMap((prev) => ({
-        ...prev,
-        [tableId]: [...prev[tableId], ...schedules],
-      }));
-      onClose();
-    },
-    [searchInfo, setSchedulesMap, onClose]
   );
 
   useEffect(() => {
@@ -416,54 +390,13 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
               </FormControl>
             </HStack>
             <Text align="right">검색결과: {filteredLectures.length}개</Text>
-            <Box>
-              <Table>
-                <Thead>
-                  <Tr>
-                    <Th width="100px">과목코드</Th>
-                    <Th width="50px">학년</Th>
-                    <Th width="200px">과목명</Th>
-                    <Th width="50px">학점</Th>
-                    <Th width="150px">전공</Th>
-                    <Th width="150px">시간</Th>
-                    <Th width="80px"></Th>
-                  </Tr>
-                </Thead>
-              </Table>
-
-              <Box overflowY="auto" maxH="500px" ref={loaderWrapperRef}>
-                <Table size="sm" variant="striped">
-                  <Tbody>
-                    {visibleLectures.map((lecture, index) => (
-                      <Tr key={`${lecture.id}-${index}`}>
-                        <Td width="100px">{lecture.id}</Td>
-                        <Td width="50px">{lecture.grade}</Td>
-                        <Td width="200px">{lecture.title}</Td>
-                        <Td width="50px">{lecture.credits}</Td>
-                        <Td
-                          width="150px"
-                          dangerouslySetInnerHTML={{ __html: lecture.major }}
-                        />
-                        <Td
-                          width="150px"
-                          dangerouslySetInnerHTML={{ __html: lecture.schedule }}
-                        />
-                        <Td width="80px">
-                          <Button
-                            size="sm"
-                            colorScheme="green"
-                            onClick={() => addSchedule(lecture)}
-                          >
-                            추가
-                          </Button>
-                        </Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
-                <Box ref={loaderRef} h="20px" />
-              </Box>
-            </Box>
+            <LectureTable
+              loaderWrapperRef={loaderWrapperRef}
+              visibleLectures={visibleLectures}
+              loaderRef={loaderRef}
+              searchInfo={searchInfo}
+              onClose={onClose}
+            />
           </VStack>
         </ModalBody>
       </ModalContent>
