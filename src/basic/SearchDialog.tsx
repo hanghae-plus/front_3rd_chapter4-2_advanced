@@ -133,6 +133,10 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     [],
   );
 
+  const memoizedOnClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
   const memoizedAddSchedule = useCallback(
     (lecture: Lecture) => {
       if (!searchInfo) return;
@@ -149,9 +153,9 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
         [tableId]: [...prev[tableId], ...schedules],
       }));
 
-      onClose();
+      memoizedOnClose();
     },
-    [searchInfo, setSchedulesMap, onClose],
+    [searchInfo, setSchedulesMap, memoizedOnClose],
   );
 
   useEffect(() => {
@@ -197,7 +201,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
   }, [searchInfo]);
 
   return (
-    <Modal isOpen={Boolean(searchInfo)} onClose={onClose} size="6xl">
+    <Modal isOpen={Boolean(searchInfo)} onClose={memoizedOnClose} size="6xl">
       <ModalOverlay />
       <ModalContent maxW="90vw" w="1000px">
         <ModalHeader>수업 검색</ModalHeader>
@@ -260,9 +264,9 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
               <Box overflowY="auto" maxH="500px" ref={loaderWrapperRef}>
                 <Table size="sm" variant="striped">
                   <Tbody>
-                    {visibleLectures.map(lecture => (
+                    {visibleLectures.map((lecture, index) => (
                       <LectureRow
-                        key={lecture.id}
+                        key={`${lecture.id}-${index}`}
                         lecture={lecture}
                         addSchedule={memoizedAddSchedule}
                       />
