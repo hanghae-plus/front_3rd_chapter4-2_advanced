@@ -32,7 +32,7 @@
 
 ---
 
-## Drag 렌더링 최적회
+## 2. Drag 렌더링 최적화
 
 - `ScheduleTable` 내의 `useContext` 대신 `useDndMonitor` 모니터를 사용하여 특정 스케쥴 테이블에서 drag시 해당 컴포넌트만 리렌더링 되도록 개선
 
@@ -46,5 +46,9 @@
     ![alt text](images/drag_added_after.png)
   - 실제 `drag` 했을 때
     ![alt text](images/drag_added_after_2.png)
+
+
+
+## Highlight로 바라보는 렌더링 개선 결과
   https://github.com/user-attachments/assets/e0c3ad78-1ec9-4b2e-844d-d42923152f2f
 
