@@ -37,19 +37,19 @@
 - `ScheduleTable` 내의 `useContext` 대신 `useDndMonitor` 모니터를 사용하여 특정 스케쥴 테이블에서 drag시 해당 컴포넌트만 리렌더링 되도록 개선
 
 1️⃣ 개선 전
+![alt text](images/drag_before.png)
 
 2️⃣ 개선 후
 ![alt text](images/drag_after.png)
 
 3️⃣ 추가 개선
-  - `onDragStart, onDragEnd` 시에 `drag` 중인 `table`이 아니면 리렌더링이 안일어나도록 추가
+
+- `onDragStart, onDragEnd` 시에 `drag` 중인 `table`이 아니면 리렌더링이 안일어나도록 추가
   ![alt text](images/drag_added_after.png)
-  
-  - 실제 `drag` 했을 때
+
+- 실제 `drag` 했을 때
   ![alt text](images/drag_added_after_2.png)
 
+## Highlight로 바라보는 최종 렌더링 개선 결과
 
-
-## Highlight로 바라보는 렌더링 개선 결과
-  https://github.com/user-attachments/assets/e0c3ad78-1ec9-4b2e-844d-d42923152f2f
-
+https://github.com/user-attachments/assets/e0c3ad78-1ec9-4b2e-844d-d42923152f2f
