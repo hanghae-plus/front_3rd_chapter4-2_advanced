@@ -19,6 +19,7 @@ import { ComponentProps, Fragment, memo, useMemo } from "react";
 import { GridHeader } from '../schedule/ui/GridHeader.tsx';
 import { TimeCell } from '../schedule/ui/TimeCell.tsx';
 import { ScheduleCell } from '../schedule/ui/ScheduleCell.tsx';
+import { TIMES } from '../schedule/model/constants.ts';
 
 interface Props {
   tableId: string;
