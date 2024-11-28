@@ -1,8 +1,8 @@
-import { Button, ButtonGroup, Flex, Heading, Stack } from "@chakra-ui/react";
-import ScheduleTable from "./ScheduleTable.tsx";
+import { Flex } from "@chakra-ui/react";
 import { useScheduleContext } from "../../contexts/ScheduleContext.tsx";
 import SearchDialog from "../SearchDialog/SearchDialog.tsx";
-import {useCallback, useState} from "react";
+import {useCallback, useMemo, useState} from "react";
+import TimeTableContainer from "./TimeTableContainer.tsx";
 
 export const ScheduleTables = () => {
   const { schedulesMap, setSchedulesMap } = useScheduleContext();
@@ -12,49 +12,41 @@ export const ScheduleTables = () => {
     time?: number;
   } | null>(null);
 
-  const disabledRemoveButton = Object.keys(schedulesMap).length === 1
+  const tableIds = useMemo(() => Object.keys(schedulesMap), [schedulesMap]);
+  const disabledRemoveButton = useMemo(() => tableIds.length === 1,[tableIds])
 
-  const duplicate = (targetId: string) => {
+  const searchSchedule = useCallback((tableId: string, timeInfo?:  { day: string, time: number }) => {
+    setSearchInfo({ tableId, ...timeInfo })
+  },[])
+
+  const duplicate = useCallback((targetId: string) => {
     setSchedulesMap(prev => ({
       ...prev,
       [`schedule-${Date.now()}`]: [...prev[targetId]]
     }))
-  }
+  },[])
 
-  const remove = (targetId: string) => {
+  const remove = useCallback((targetId: string) => {
     setSchedulesMap(prev => {
       delete prev[targetId];
       return { ...prev };
     })
-  }
+  },[]);
 
   const close = useCallback(() => setSearchInfo(null), [])
 
   return (
     <>
       <Flex w="full" gap={6} p={6} flexWrap="wrap">
-        {Object.entries(schedulesMap).map(([tableId, schedules], index) => (
-          <Stack key={tableId} width="600px">
-            <Flex justifyContent="space-between" alignItems="center">
-              <Heading as="h3" fontSize="lg">시간표 {index + 1}</Heading>
-              <ButtonGroup size="sm" isAttached>
-                <Button colorScheme="green" onClick={() => setSearchInfo({ tableId })}>시간표 추가</Button>
-                <Button colorScheme="green" mx="1px" onClick={() => duplicate(tableId)}>복제</Button>
-                <Button colorScheme="green" isDisabled={disabledRemoveButton}
-                        onClick={() => remove(tableId)}>삭제</Button>
-              </ButtonGroup>
-            </Flex>
-            <ScheduleTable
-              key={`schedule-table-${index}`}
-              schedules={schedules}
+        {Object.entries(schedulesMap).map(([tableId], index) => (
+          <TimeTableContainer
+              key={tableId}
               tableId={tableId}
-              onScheduleTimeClick={(timeInfo) => setSearchInfo({ tableId, ...timeInfo })}
-              onDeleteButtonClick={({ day, time }) => setSchedulesMap((prev) => ({
-                ...prev,
-                [tableId]: prev[tableId].filter(schedule => schedule.day !== day || !schedule.range.includes(time))
-              }))}
-            />
-          </Stack>
+              index={index}
+              isDeleteDisabled={disabledRemoveButton}
+              onScheduleAdd={searchSchedule}
+              onDuplicate={duplicate}
+              onRemove={remove} />
         ))}
       </Flex>
       <SearchDialog searchInfo={searchInfo} onClose={close}/>
