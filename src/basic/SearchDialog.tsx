@@ -418,7 +418,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                 <List
                   height={500}
                   itemCount={visibleLectures.length}
-                  itemSize={60} // 각 행의 높이
+                  itemSize={80} // 각 행의 높이
                   width="100%"
                   itemData={{ lectures: visibleLectures, addSchedule }}
                   onItemsRendered={handleItemsRendered}
