@@ -41,11 +41,12 @@
 2️⃣ 개선 후
 ![alt text](images/drag_after.png)
 
-- 추가 개선
-  - `onDragStart ,onDragEnd` 시에 `drag` 중인 `table`이 아니면 리렌더링이 안일어나도록 추가
-    ![alt text](images/drag_added_after.png)
+3️⃣ 추가 개선
+  - `onDragStart, onDragEnd` 시에 `drag` 중인 `table`이 아니면 리렌더링이 안일어나도록 추가
+  ![alt text](images/drag_added_after.png)
+  
   - 실제 `drag` 했을 때
-    ![alt text](images/drag_added_after_2.png)
+  ![alt text](images/drag_added_after_2.png)
 
 
 
