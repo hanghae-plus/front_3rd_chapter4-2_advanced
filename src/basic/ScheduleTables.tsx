@@ -2,9 +2,9 @@ import { Button, ButtonGroup, Flex, Heading, Stack } from "@chakra-ui/react";
 import ScheduleTable from "./ScheduleTable.tsx";
 import { useScheduleContext } from "./ScheduleContext.tsx";
 import SearchDialog from "./SearchDialog.tsx";
-import { useState } from "react";
+import { useState, memo, useCallback } from "react";
 
-export const ScheduleTables = () => {
+export const ScheduleTables = memo(() => {
   const { schedulesMap, setSchedulesMap } = useScheduleContext();
   const [searchInfo, setSearchInfo] = useState<{
     tableId: string;
@@ -12,21 +12,22 @@ export const ScheduleTables = () => {
     time?: number;
   } | null>(null);
 
-  const disabledRemoveButton = Object.keys(schedulesMap).length === 1
+  const disabledRemoveButton = Object.keys(schedulesMap).length === 1;
 
-  const duplicate = (targetId: string) => {
+  const duplicate = useCallback((targetId: string) => {
     setSchedulesMap(prev => ({
       ...prev,
       [`schedule-${Date.now()}`]: [...prev[targetId]]
-    }))
-  }
+    }));
+  }, [setSchedulesMap]);
 
-  const remove = (targetId: string) => {
+  const remove = useCallback((targetId: string) => {
     setSchedulesMap(prev => {
-      delete prev[targetId];
-      return { ...prev };
-    })
-  }
+      const newMap = { ...prev };
+      delete newMap[targetId];
+      return newMap;
+    });
+  }, [setSchedulesMap]);
 
   return (
     <>
@@ -43,14 +44,9 @@ export const ScheduleTables = () => {
               </ButtonGroup>
             </Flex>
             <ScheduleTable
-              key={`schedule-table-${index}`}
               schedules={schedules}
               tableId={tableId}
-              onScheduleTimeClick={(timeInfo) => setSearchInfo({ tableId, ...timeInfo })}
-              onDeleteButtonClick={({ day, time }) => setSchedulesMap((prev) => ({
-                ...prev,
-                [tableId]: prev[tableId].filter(schedule => schedule.day !== day || !schedule.range.includes(time))
-              }))}
+              setSearchInfo={setSearchInfo}
             />
           </Stack>
         ))}
@@ -58,4 +54,4 @@ export const ScheduleTables = () => {
       <SearchDialog searchInfo={searchInfo} onClose={() => setSearchInfo(null)}/>
     </>
   );
-}
+});
