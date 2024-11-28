@@ -17,11 +17,11 @@ export const filterByCredits = (credits: number | undefined) => (lecture: Lectur
 export const filterByDays = (days: string[]) => (lecture: Lecture) => {
   if (days.length === 0) return true;
   const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
-  return schedules.some(s => days.includes(s.day));
+  return schedules.some(day => days.includes(day.day));
 };
 
 export const filterByTimes = (times: number[]) => (lecture: Lecture) => {
   if (times.length === 0) return true;
   const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
-  return schedules.some(s => s.range.some(time => times.includes(time)));
+  return schedules.some(schedule => schedule.range.some(time => times.includes(time)));
 };

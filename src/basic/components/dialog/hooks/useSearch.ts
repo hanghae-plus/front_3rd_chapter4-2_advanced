@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Lecture, SearchOption } from "../../../types";
 import { filterByCredits, filterByDays, filterByGrades, filterByMajors, filterByQuery, filterByTimes } from "../../../lib/utils/searchDialogUtils";
+import { lazyFilter } from "../../../lib/utils/lazyFilter";
 
 export const useSearch = (lectures: Lecture[]) => {
   const [searchOptions, setSearchOptions] = useState<SearchOption>({
@@ -11,23 +12,17 @@ export const useSearch = (lectures: Lecture[]) => {
     majors: [],
   });
 
-  const filters = useMemo(() => ({
-    query: filterByQuery(searchOptions.query || ""),
-    grades: filterByGrades(searchOptions.grades),
-    majors: filterByMajors(searchOptions.majors),
-    credits: filterByCredits(searchOptions?.credits || 0),
-    days: filterByDays(searchOptions.days),
-    times: filterByTimes(searchOptions.times),
-  }), [searchOptions]);
+  const filters = useMemo(() => [
+    filterByQuery(searchOptions.query || ""),
+    filterByGrades(searchOptions.grades),
+    filterByMajors(searchOptions.majors),
+    filterByCredits(searchOptions?.credits || 0),
+    filterByDays(searchOptions.days),
+    filterByTimes(searchOptions.times),
+  ], [searchOptions]);
 
   const filteredLectures = useMemo(() => {
-    return lectures
-      .filter(filters.query)
-      .filter(filters.grades)
-      .filter(filters.majors)
-      .filter(filters.credits)
-      .filter(filters.days)
-      .filter(filters.times)
+    return [...lazyFilter(lectures, filters)]
   }, [lectures, filters]);
 
   return {
