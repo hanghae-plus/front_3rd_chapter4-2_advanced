@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   Box,
-  Button,
   Checkbox,
   CheckboxGroup,
   FormControl,
@@ -21,7 +20,6 @@ import {
   TagCloseButton,
   TagLabel,
   Tbody,
-  Td,
   Text,
   Th,
   Thead,
@@ -34,6 +32,7 @@ import { Lecture } from './types.ts';
 import { parseSchedule } from "./utils.ts";
 import axios, { AxiosResponse } from "axios";
 import { DAY_LABELS } from './constants.ts';
+import LectureTableData from "./LectureTableData.tsx";
 
 interface Props {
   searchInfo: {
@@ -156,11 +155,11 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
         const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
         return schedules.some(s => s.range.some(time => times.includes(time)));
       });
-  }
+  };
 
-  const filteredLectures = useMemo(() => getFilteredLectures(), [lectures, searchOptions]);
+  const filteredLectures = useMemo(getFilteredLectures, [lectures, searchOptions]);
   const lastPage = Math.ceil(filteredLectures.length / PAGE_SIZE);
-  const visibleLectures = filteredLectures.slice(0, page * PAGE_SIZE);
+  const visibleLectures = useMemo(() => filteredLectures.slice(0, page * PAGE_SIZE), [filteredLectures, page])
   const allMajors = [...new Set(lectures.map(lecture => lecture.major))];
 
   const changeSearchOption = (field: keyof SearchOption, value: SearchOption[typeof field]) => {
@@ -169,7 +168,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     loaderWrapperRef.current?.scrollTo(0, 0);
   };
 
-  const addSchedule = (lecture: Lecture) => {
+  const addSchedule = useCallback((lecture: Lecture) => {
     if (!searchInfo) return;
 
     const { tableId } = searchInfo;
@@ -185,7 +184,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     }));
 
     onClose();
-  };
+  }, [searchInfo, onClose]);
 
   useEffect(() => {
     const start = performance.now();
@@ -372,17 +371,11 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                 <Table size="sm" variant="striped">
                   <Tbody>
                     {visibleLectures.map((lecture, index) => (
-                      <Tr key={`${lecture.id}-${index}`}>
-                        <Td width="100px">{lecture.id}</Td>
-                        <Td width="50px">{lecture.grade}</Td>
-                        <Td width="200px">{lecture.title}</Td>
-                        <Td width="50px">{lecture.credits}</Td>
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.major }}/>
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.schedule }}/>
-                        <Td width="80px">
-                          <Button size="sm" colorScheme="green" onClick={() => addSchedule(lecture)}>추가</Button>
-                        </Td>
-                      </Tr>
+                        <LectureTableData
+                            key={`${lecture.id}-${index}`}
+                            lecture={lecture}
+                            onAddButtonClick={addSchedule}
+                        />
                     ))}
                   </Tbody>
                 </Table>
