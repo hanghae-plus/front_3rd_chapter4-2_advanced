@@ -1,9 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-} from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import {
   Modal,
   ModalBody,
@@ -36,27 +32,26 @@ interface Props {
 }
 
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
-const SearchDialog = ({ searchInfo, onClose }: Props) => {
+const SearchDialog = memo(({ searchInfo, onClose }: Props) => {
   const { setSchedulesMap } = useScheduleContext();
 
   const lectures = useLectures();
-  const { searchOptions, setSearchOptions, filteredLectures, isDebouncing } = useSearch(lectures);
-  const { 
-    renderedRows,
-    loaderRef,
-    loaderWrapperRef,
-    loadMoreRows,
-  } = useInfiniteScroll({
-    items: filteredLectures,
-    renderRow: (item: Lecture, index: number) => <LectureRow key={`${item.id}-${index}`} lecture={item} onAddSchedule={addSchedule} />,
-    chunkSize: CHUNK_SIZE,
-  })
+  const { searchOptions, setSearchOptions, filteredLectures, isDebouncing } =
+    useSearch(lectures);
+  const { renderedRows, loaderRef, loaderWrapperRef, loadMoreRows } =
+    useInfiniteScroll({
+      items: filteredLectures,
+      renderRow: (item: Lecture, index: number) => (
+        <LectureRow
+          key={`${item.id}-${index}`}
+          lecture={item}
+          onAddSchedule={addSchedule}
+        />
+      ),
+      chunkSize: CHUNK_SIZE,
+    });
 
-  useIntersectionObserver(
-    loaderRef,
-    loaderWrapperRef,
-    loadMoreRows,
-  )
+  useIntersectionObserver(loaderRef, loaderWrapperRef, loadMoreRows);
 
   const allMajors = useMemo(
     () => [...new Set(lectures.map((lecture) => lecture?.major))],
@@ -106,15 +101,15 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
         <ModalCloseButton />
         <ModalBody>
           <VStack spacing={4} align="stretch">
-            <SearchCondition 
-              searchOptions={searchOptions} 
-              changeSearchOption={changeSearchOption} 
+            <SearchCondition
+              searchOptions={searchOptions}
+              changeSearchOption={changeSearchOption}
               allMajors={allMajors}
             />
             <Text align="right">검색결과: {filteredLectures.length}개</Text>
-            <SearchResults 
-              renderedRows={renderedRows} 
-              loaderRef={loaderRef} 
+            <SearchResults
+              renderedRows={renderedRows}
+              loaderRef={loaderRef}
               loaderWrapperRef={loaderWrapperRef}
               isLoading={isDebouncing}
             />
@@ -123,6 +118,6 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
       </ModalContent>
     </Modal>
   );
-};
+});
 
 export default SearchDialog;

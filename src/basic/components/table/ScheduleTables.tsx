@@ -1,11 +1,11 @@
 import { Flex } from "@chakra-ui/react";
-import { useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { useScheduleContext } from "../../context/ScheduleContext.tsx";
 import SearchDialog from "../dialog/SearchDialog.tsx";
 import { useState } from "react";
 import { TimeTable } from "./TimeTable.tsx";
 
-export const ScheduleTables = () => {
+export const ScheduleTables = memo(() => {
   const { schedulesMap, setSchedulesMap } = useScheduleContext();
   const [searchInfo, setSearchInfo] = useState<{
     tableId: string;
@@ -64,4 +64,4 @@ export const ScheduleTables = () => {
       <SearchDialog searchInfo={searchInfo} onClose={handleCloseSearch} />
     </>
   );
-};
+});
