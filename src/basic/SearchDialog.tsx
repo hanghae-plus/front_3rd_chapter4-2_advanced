@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -30,7 +30,7 @@ import {
   Wrap,
 } from '@chakra-ui/react';
 import { useScheduleContext } from './ScheduleContext.tsx';
-import { Lecture } from './types.ts';
+import type { Lecture } from './types.ts';
 import { parseSchedule } from "./utils.ts";
 import axios from "axios";
 import { DAY_LABELS } from './constants.ts';
@@ -122,76 +122,87 @@ const fetchAllLectures = async () => {
   ]);
 }
 
+const INITIAL_SEARCH_OPTIONS: SearchOption = {
+  query: '',
+  grades: [],
+  days: [],
+  times: [],
+  majors: [],
+}
+
+const getFilteredLectures = (lectures: Lecture[], searchOptions: SearchOption) => {
+  const { query = '', credits, grades, days, times, majors } = searchOptions;
+
+  return lectures
+    .filter(lecture =>
+      lecture.title.toLowerCase().includes(query.toLowerCase()) ||
+      lecture.id.toLowerCase().includes(query.toLowerCase())
+    )
+    .filter(lecture => grades.length === 0 || grades.includes(lecture.grade))
+    .filter(lecture => majors.length === 0 || majors.includes(lecture.major))
+    .filter(lecture => !credits || lecture.credits.startsWith(String(credits)))
+    .filter(lecture => {
+      if (days.length === 0) {
+        return true;
+      }
+      const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
+      return schedules.some(s => days.includes(s.day));
+    })
+    .filter(lecture => {
+      if (times.length === 0) {
+        return true;
+      }
+      const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
+      return schedules.some(s => s.range.some(time => times.includes(time)));
+    });
+}
+
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
   const { setSchedulesMap } = useScheduleContext();
 
   const loaderWrapperRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
+
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [page, setPage] = useState(1);
-  const [searchOptions, setSearchOptions] = useState<SearchOption>({
-    query: '',
-    grades: [],
-    days: [],
-    times: [],
-    majors: [],
-  });
+  const [searchOptions, setSearchOptions] = useState<SearchOption>(INITIAL_SEARCH_OPTIONS);
 
-  const getFilteredLectures = () => {
-    const { query = '', credits, grades, days, times, majors } = searchOptions;
-    return lectures
-      .filter(lecture =>
-        lecture.title.toLowerCase().includes(query.toLowerCase()) ||
-        lecture.id.toLowerCase().includes(query.toLowerCase())
-      )
-      .filter(lecture => grades.length === 0 || grades.includes(lecture.grade))
-      .filter(lecture => majors.length === 0 || majors.includes(lecture.major))
-      .filter(lecture => !credits || lecture.credits.startsWith(String(credits)))
-      .filter(lecture => {
-        if (days.length === 0) {
-          return true;
-        }
-        const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
-        return schedules.some(s => days.includes(s.day));
-      })
-      .filter(lecture => {
-        if (times.length === 0) {
-          return true;
-        }
-        const schedules = lecture.schedule ? parseSchedule(lecture.schedule) : [];
-        return schedules.some(s => s.range.some(time => times.includes(time)));
-      });
-  }
+  const filteredLectures = useMemo(() => getFilteredLectures(lectures, searchOptions), [lectures, searchOptions]);
+  const allMajors = useMemo(() => [...new Set(lectures.map(lecture => lecture.major))], [lectures]);
 
-  const filteredLectures = getFilteredLectures();
   const lastPage = Math.ceil(filteredLectures.length / PAGE_SIZE);
   const visibleLectures = filteredLectures.slice(0, page * PAGE_SIZE);
-  const allMajors = [...new Set(lectures.map(lecture => lecture.major))];
 
-  const changeSearchOption = (field: keyof SearchOption, value: SearchOption[typeof field]) => {
-    setPage(1);
-    setSearchOptions(({ ...searchOptions, [field]: value }));
-    loaderWrapperRef.current?.scrollTo(0, 0);
-  };
+  const changeSearchOption = useCallback(
+    (field: keyof SearchOption, value: SearchOption[typeof field]) => {
+      setPage(1);
+      setSearchOptions(({ ...searchOptions, [field]: value }));
+      loaderWrapperRef.current?.scrollTo(0, 0);
+    },
+    [loaderWrapperRef, searchOptions, setPage, setSearchOptions]
+  );
 
-  const addSchedule = (lecture: Lecture) => {
-    if (!searchInfo) return;
+  const addSchedule = useCallback(
+    (lecture: Lecture) => {
+      if (!searchInfo) return;
 
-    const { tableId } = searchInfo;
+      const { tableId } = searchInfo;
 
-    const schedules = parseSchedule(lecture.schedule).map(schedule => ({
-      ...schedule,
-      lecture
-    }));
+      const schedules = parseSchedule(lecture.schedule).map(schedule => ({
+        ...schedule,
+        lecture
+      }));
 
-    setSchedulesMap(prev => ({
-      ...prev,
-      [tableId]: [...prev[tableId], ...schedules]
-    }));
+      setSchedulesMap(prev => ({
+        ...prev,
+        [tableId]: [...prev[tableId], ...schedules]
+      }));
 
-    onClose();
-  };
+      onClose();
+    },
+    [searchInfo, onClose, setSchedulesMap]
+  );
 
   useEffect(() => {
     const start = performance.now();
@@ -378,17 +389,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                 <Table size="sm" variant="striped">
                   <Tbody>
                     {visibleLectures.map((lecture, index) => (
-                      <Tr key={`${lecture.id}-${index}`}>
-                        <Td width="100px">{lecture.id}</Td>
-                        <Td width="50px">{lecture.grade}</Td>
-                        <Td width="200px">{lecture.title}</Td>
-                        <Td width="50px">{lecture.credits}</Td>
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.major }}/>
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.schedule }}/>
-                        <Td width="80px">
-                          <Button size="sm" colorScheme="green" onClick={() => addSchedule(lecture)}>추가</Button>
-                        </Td>
-                      </Tr>
+                      <Lecture key={`${lecture.id}-${index}`} lecture={lecture} addSchedule={addSchedule} />
                     ))}
                   </Tbody>
                 </Table>
@@ -401,5 +402,20 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     </Modal>
   );
 };
+
+const Lecture: React.FC<{ lecture: Lecture, addSchedule: (lecture: Lecture) => void }> = memo(({ lecture, addSchedule }) => {
+
+  return <Tr>
+    <Td width="100px">{lecture.id}</Td>
+    <Td width="50px">{lecture.grade}</Td>
+    <Td width="200px">{lecture.title}</Td>
+    <Td width="50px">{lecture.credits}</Td>
+    <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.major }}/>
+    <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.schedule }}/>
+    <Td width="80px">
+      <Button size="sm" colorScheme="green" onClick={() => addSchedule(lecture)}>추가</Button>
+    </Td>
+  </Tr>
+});
 
 export default SearchDialog;
