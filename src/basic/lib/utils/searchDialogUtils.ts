@@ -1,5 +1,5 @@
-import { Lecture } from "../types";
-import { parseSchedule } from "../utils";
+import { Lecture } from "../../types";
+import { parseSchedule } from "./timeUtils";
 
 export const filterByQuery = (query: string) => (lecture: Lecture) =>
   lecture?.title.toLowerCase().includes(query.toLowerCase()) ||

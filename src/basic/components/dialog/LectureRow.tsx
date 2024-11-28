@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Lecture } from "./types";
+import { Lecture } from "../../types";
 import { Button, Td, Tr } from "@chakra-ui/react";
 
 export const LectureRow = memo(({ 
