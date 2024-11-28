@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Box,
-  Button,
   Checkbox,
   CheckboxGroup,
   FormControl,
@@ -16,16 +15,10 @@ import {
   ModalOverlay,
   Select,
   Stack,
-  Table,
   Tag,
   TagCloseButton,
   TagLabel,
-  Tbody,
-  Td,
   Text,
-  Th,
-  Thead,
-  Tr,
   VStack,
   Wrap,
 } from "@chakra-ui/react"
@@ -34,7 +27,10 @@ import { Lecture } from "./types.ts"
 import { parseSchedule } from "./utils.ts"
 import axios, { AxiosResponse } from "axios"
 import { DAY_LABELS } from "./constants.ts"
-import MajorCheckbox from "./MajorCheckbox.tsx"
+import { FixedSizeList as List, ListOnItemsRenderedProps } from "react-window"
+
+import MajorCheckbox from "./components/MajorCheckbox.tsx"
+import LectureRow from "./components/LectureRow.tsx"
 
 interface Props {
   searchInfo: {
@@ -52,6 +48,17 @@ interface SearchOption {
   times: number[]
   majors: string[]
   credits?: number
+}
+
+interface RowData {
+  lectures: Lecture[]
+  addSchedule: (lecture: Lecture) => void
+}
+
+interface RowProps {
+  index: number
+  style: React.CSSProperties
+  data: RowData
 }
 
 const TIME_SLOTS = [
@@ -269,6 +276,28 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     setPage(1)
   }, [searchInfo])
 
+  // infinite scrolling
+  const handleItemsRendered = useCallback(
+    (props: ListOnItemsRenderedProps) => {
+      const { visibleStopIndex } = props
+      if (
+        visibleStopIndex >= visibleLectures.length - 1 &&
+        page < Math.ceil(getFilteredLectures.length / PAGE_SIZE)
+      ) {
+        setPage((prevPage) => prevPage + 1)
+      }
+    },
+    [visibleLectures.length, page, getFilteredLectures.length]
+  )
+
+  // react-window의 List에서 사용할 Row 컴포넌트
+  const Row = useCallback(({ index, style, data }: RowProps) => {
+    const lecture = data.lectures[index]
+    const addSchedule = data.addSchedule
+
+    return <LectureRow lecture={lecture} addSchedule={addSchedule} style={style} />
+  }, [])
+
   return (
     <Modal isOpen={Boolean(searchInfo)} onClose={onClose} size="6xl">
       <ModalOverlay />
@@ -417,12 +446,6 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                         major={major}
                         onChange={() => handleMajorCheckboxChange}
                       />
-
-                      // <Box key={major}>
-                      //   <Checkbox key={major} size="sm" value={major}>
-                      //     {major.replace(/<p>/gi, ' ')}
-                      //   </Checkbox>
-                      // </Box>
                     ))}
                   </Stack>
                 </CheckboxGroup>
@@ -430,45 +453,29 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
             </HStack>
             <Text align="right">검색결과: {getFilteredLectures.length}개</Text>
             <Box>
-              <Table>
-                <Thead>
-                  <Tr>
-                    <Th width="100px">과목코드</Th>
-                    <Th width="50px">학년</Th>
-                    <Th width="200px">과목명</Th>
-                    <Th width="50px">학점</Th>
-                    <Th width="150px">전공</Th>
-                    <Th width="150px">시간</Th>
-                    <Th width="80px"></Th>
-                  </Tr>
-                </Thead>
-              </Table>
-
-              <Box overflowY="auto" maxH="500px" ref={loaderWrapperRef}>
-                <Table size="sm" variant="striped">
-                  <Tbody>
-                    {visibleLectures.map((lecture, index) => (
-                      <Tr key={`${lecture.id}-${index}`}>
-                        <Td width="100px">{lecture.id}</Td>
-                        <Td width="50px">{lecture.grade}</Td>
-                        <Td width="200px">{lecture.title}</Td>
-                        <Td width="50px">{lecture.credits}</Td>
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.major }} />
-                        <Td width="150px" dangerouslySetInnerHTML={{ __html: lecture.schedule }} />
-                        <Td width="80px">
-                          <Button
-                            size="sm"
-                            colorScheme="green"
-                            onClick={() => addSchedule(lecture)}
-                          >
-                            추가
-                          </Button>
-                        </Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
-                <Box ref={loaderRef} h="20px" />
+              {/* 헤더 */}
+              <Box display="flex" borderBottom="2px solid #e2e8f0" padding="8px" fontWeight="bold">
+                <Box width="100px">과목코드</Box>
+                <Box width="50px">학년</Box>
+                <Box width="200px">과목명</Box>
+                <Box width="50px">학점</Box>
+                <Box width="150px">전공</Box>
+                <Box width="150px">시간</Box>
+                <Box width="80px"></Box>
+              </Box>
+              {/* 가상화된 리스트 */}
+              <Box overflow="auto" maxHeight="500px" ref={loaderWrapperRef}>
+                <List
+                  height={500}
+                  itemCount={visibleLectures.length}
+                  itemSize={60} // 각 행의 높이
+                  width="100%"
+                  itemData={{ lectures: visibleLectures, addSchedule }}
+                  onItemsRendered={handleItemsRendered}
+                >
+                  {Row}
+                </List>
+                <Box ref={loaderRef} height="20px" />
               </Box>
             </Box>
           </VStack>
