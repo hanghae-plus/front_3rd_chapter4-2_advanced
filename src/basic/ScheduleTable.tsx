@@ -22,8 +22,8 @@ import { ComponentProps, Fragment, memo, useCallback, useMemo } from "react";
 interface Props {
   tableId: string;
   schedules: Schedule[];
-  onScheduleTimeClick?: (timeInfo: { day: string, time: number }) => void;
-  onDeleteButtonClick?: (timeInfo: { day: string, time: number }) => void;
+  onScheduleTimeClick?: (tableId: string, timeInfo: { day: string, time: number }) => void;
+  onDeleteButtonClick?: (tableId: string, timeInfo: { day: string, time: number }) => void;
 }
 
 const TIMES = [
@@ -38,8 +38,7 @@ const TIMES = [
     .map((v) => `${parseHnM(v)}~${parseHnM(v + 50 * 분)}`),
 ] as const;
 
-const ScheduleTable = ({ tableId, schedules, onScheduleTimeClick, onDeleteButtonClick }: Props) => {
-
+const ScheduleTable = memo(({ tableId, schedules, onScheduleTimeClick, onDeleteButtonClick }: Props) => {
   const getColor = (lectureId: string): string => {
     const lectures = [...new Set(schedules.map(({ lecture }) => lecture.id))];
     const colors = ["#fdd", "#ffd", "#dff", "#ddf", "#fdf", "#dfd"];
@@ -59,15 +58,15 @@ const ScheduleTable = ({ tableId, schedules, onScheduleTimeClick, onDeleteButton
   const activeTableId = getActiveTableId();
 
   const handleClickDayCell = useCallback((timeInfo: { day: string, time: number }) => {
-    onScheduleTimeClick?.(timeInfo)
-  }, [onScheduleTimeClick])
+    onScheduleTimeClick?.(tableId, timeInfo)
+  }, [onScheduleTimeClick, tableId])
 
   const handleDeleteSchedule = useCallback((schedule: Schedule) => {
-    onDeleteButtonClick?.({
+    onDeleteButtonClick?.(tableId, {
       day: schedule.day,
       time: schedule.range[0],
     })
-  }, [onDeleteButtonClick])
+  }, [onDeleteButtonClick, tableId])
 
   return (
     <Box
@@ -117,7 +116,7 @@ const ScheduleTable = ({ tableId, schedules, onScheduleTimeClick, onDeleteButton
       ))}
     </Box>
   );
-};
+});
 
 const DraggableSchedule = memo(({
  id,

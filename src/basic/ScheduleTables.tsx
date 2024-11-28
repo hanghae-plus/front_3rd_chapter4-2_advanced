@@ -2,7 +2,7 @@ import { Button, ButtonGroup, Flex, Heading, Stack } from "@chakra-ui/react";
 import ScheduleTable from "./ScheduleTable.tsx";
 import { useScheduleContext } from "./ScheduleContext.tsx";
 import SearchDialog from "./SearchDialog.tsx";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import ScheduleDndProvider from "./ScheduleDndProvider.tsx";
 
 export const ScheduleTables = () => {
@@ -29,6 +29,19 @@ export const ScheduleTables = () => {
     })
   }
 
+  const handleScheduleTimeClick = useCallback((tableId: string, timeInfo: { day: string, time: number }) => {
+    setSearchInfo({ tableId, ...timeInfo })
+  }, [])
+
+  const handleDeleteButtonClick = useCallback((tableId: string, timeInfo: { day: string, time: number }) => {
+    setSchedulesMap((prev) => ({
+      ...prev, 
+      [tableId]: prev[tableId].filter(schedule => 
+        schedule.day !== timeInfo.day || !schedule.range.includes(timeInfo.time)
+      )
+    }));
+  }, [setSchedulesMap]);
+
   return (
     <>
       <Flex w="full" gap={6} p={6} flexWrap="wrap">
@@ -49,11 +62,8 @@ export const ScheduleTables = () => {
                 key={`schedule-table-${index}`}
                 schedules={schedules}
                 tableId={tableId}
-                onScheduleTimeClick={(timeInfo) => setSearchInfo({ tableId, ...timeInfo })}
-                onDeleteButtonClick={({ day, time }) => setSchedulesMap((prev) => ({
-                  ...prev,
-                  [tableId]: prev[tableId].filter(schedule => schedule.day !== day || !schedule.range.includes(time))
-                }))}
+                onScheduleTimeClick={handleScheduleTimeClick}
+                onDeleteButtonClick={handleDeleteButtonClick}
               />
             </ScheduleDndProvider>
           </Stack>
