@@ -15,10 +15,10 @@ import { parseSchedule } from "./utils.ts";
 import { PAGE_SIZE } from '../page/model/constants.ts';
 import { useFilteredLectures } from '../lecture/model/useFilteredLecture.ts';
 import { useInfiniteScroll } from '../page/model/useInfiniteScroll.ts';
-import { SearchOption } from '../search/model/Search.ts';
 import { useLectureData } from '../lecture/model/useLectureData.ts';
 import { SearchForm } from '../search/ui/SearchForm.tsx';
 import { LectureListTableBox } from '../lecture/ui/LectureListTableBox.tsx';
+import { useSearchOptions } from '../search/model/useSearchOptions.ts';
 
 interface Props {
   searchInfo: {
@@ -29,25 +29,16 @@ interface Props {
   onClose: () => void;
 }
 
-// TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
   const { setSchedulesMap } = useScheduleContext();
 
   const { lectures, isLoading, error } = useLectureData();
+  const { searchOptions, updateSearchOptions } = useSearchOptions(searchInfo);
+  const filteredLectures = useFilteredLectures(lectures, searchOptions);
 
   const loaderWrapperRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
-  const [searchOptions, setSearchOptions] = useState<SearchOption>({
-    query: '',
-    grades: [],
-    days: [],
-    times: [],
-    majors: [],
-  });
-
-  // 새로운 메모이제이션 코드 추가
-  const filteredLectures = useFilteredLectures(lectures, searchOptions);
 
   const lastPage = useMemo(() => 
     Math.ceil(filteredLectures.length / PAGE_SIZE)
@@ -60,12 +51,6 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
   const allMajors = useMemo(() => 
     [...new Set(lectures.map(lecture => lecture.major))]
   , [lectures]);
-
-  const changeSearchOption = useCallback((field: keyof SearchOption, value: SearchOption[typeof field]) => {
-    setPage(1);
-    setSearchOptions(prev => ({ ...prev, [field]: value }));
-    loaderWrapperRef.current?.scrollTo(0, 0);
-  }, []);
 
   const addSchedule = useCallback((lecture: Lecture) => {
     if (!searchInfo) return;
@@ -92,13 +77,9 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
   });
 
   useEffect(() => {
-    setSearchOptions(prev => ({
-      ...prev,
-      days: searchInfo?.day ? [searchInfo.day] : [],
-      times: searchInfo?.time ? [searchInfo.time] : [],
-    }))
     setPage(1);
-  }, [searchInfo]);
+    loaderWrapperRef.current?.scrollTo(0, 0);
+  }, [searchOptions]);
 
   if (error) {
     return (
@@ -128,7 +109,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
             <VStack spacing={4} align="stretch">
               <SearchForm
                 searchOptions={searchOptions}
-                onChangeSearchOption={changeSearchOption}
+                updateSearchOptions={updateSearchOptions}
                 allMajors={allMajors}
               />
               <Text align="right">
