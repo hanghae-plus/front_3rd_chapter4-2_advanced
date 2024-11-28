@@ -27,3 +27,29 @@ export const parseSchedule = (schedule: string) => {
     return { day, range, room };
   });
 };
+
+/**
+ * 캐시된 결과를 사용하는 함수를 반환합니다.
+ */
+export const createCachedFetch = <T>(fetchFn: () => Promise<T>) => {
+  let cache: T | null = null;
+  let fetchPromise: Promise<T> | null = null;
+
+  return () => {
+    if (cache) {
+      return Promise.resolve(cache);
+    }
+
+    if (fetchPromise) {
+      return fetchPromise;
+    }
+
+    fetchPromise = fetchFn().then(result => {
+      cache = result;
+      fetchPromise = null;
+      return result;
+    });
+
+    return fetchPromise;
+  };
+};
