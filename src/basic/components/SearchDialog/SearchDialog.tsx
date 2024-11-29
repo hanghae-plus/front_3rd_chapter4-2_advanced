@@ -61,7 +61,7 @@ const fetchAllLectures = async () =>
   ]);
 
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
-  const { setSchedulesMap } = useScheduleContext();
+  const { addSchedule } = useScheduleContext();
 
   const loaderWrapperRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
@@ -127,7 +127,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
     [loaderWrapperRef, setPage, setSearchOptions],
   );
 
-  const addSchedule = useCallback(
+  const handleAddSchedule = useCallback(
     (lecture: Lecture) => {
       if (!searchInfo) return;
 
@@ -138,14 +138,10 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
         lecture,
       }));
 
-      setSchedulesMap(prev => ({
-        ...prev,
-        [tableId]: [...prev[tableId], ...schedules],
-      }));
-
+      addSchedule(tableId, schedules);
       onClose();
     },
-    [onClose, searchInfo, setSchedulesMap],
+    [onClose, searchInfo, addSchedule],
   );
 
   useEffect(() => {
@@ -296,7 +292,7 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
                       <LectureRow
                         key={`${lecture.id}-${index}`}
                         lecture={lecture}
-                        onAddSchedule={addSchedule}
+                        onAddSchedule={handleAddSchedule}
                       />
                     ))}
                   </Tbody>

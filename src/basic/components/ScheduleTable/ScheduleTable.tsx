@@ -1,6 +1,7 @@
 import { Box } from '@chakra-ui/react';
 import { useDndContext } from '@dnd-kit/core';
 import { useMemo } from 'react';
+import { DeleteSchedule } from '../../contexts/ScheduleContext.tsx';
 import { Schedule } from '../../types.ts';
 import { DraggableSchedule } from './DraggableSchedule.tsx';
 import { ScheduleTableGrid } from './ScheduleTableGrid.tsx';
@@ -9,7 +10,7 @@ interface Props {
   tableId: string;
   schedules: Schedule[];
   onScheduleTimeClick?: (timeInfo: { day: string; time: number }) => void;
-  onDeleteButtonClick?: (timeInfo: { day: string; time: number }) => void;
+  onDeleteButtonClick?: DeleteSchedule;
 }
 
 const ScheduleTable = ({
@@ -49,7 +50,7 @@ const ScheduleTable = ({
           data={schedule}
           bg={getColor(schedule.lecture.id)}
           onDeleteButtonClick={() =>
-            onDeleteButtonClick?.({
+            onDeleteButtonClick?.(tableId, {
               day: schedule.day,
               time: schedule.range[0],
             })

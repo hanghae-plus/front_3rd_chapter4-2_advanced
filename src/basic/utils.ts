@@ -1,3 +1,5 @@
+import { UniqueIdentifier } from '@dnd-kit/core';
+
 export const fill2 = (n: number) => `0${n}`.substr(-2);
 
 export const parseHnM = (current: number) => {
@@ -52,4 +54,9 @@ export const createCachedFetch = <T>(fetchFn: () => Promise<T>) => {
 
     return fetchPromise;
   };
+};
+
+export const parseScheduleTableId = (activeId: UniqueIdentifier) => {
+  const [tableId, index] = String(activeId).split(':');
+  return { tableId, index: Number(index) };
 };
