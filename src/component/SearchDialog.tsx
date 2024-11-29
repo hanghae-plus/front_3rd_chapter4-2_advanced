@@ -47,11 +47,11 @@ const createAPICache = () => {
     }
 
     const fetchPromise = fetchFunction().then((result) => {
-      cache[key].result = result; // 결과를 캐시에 저장
+      cache[key].result = result;
       return result;
     });
 
-    cache[key] = { promise: fetchPromise }; // 캐시에 promise 저장
+    cache[key] = { promise: fetchPromise };
     return fetchPromise;
   };
 };
