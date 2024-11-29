@@ -1,8 +1,9 @@
 import { Button, ButtonGroup, Flex, Heading, Stack } from "@chakra-ui/react";
 import ScheduleTable from "./ScheduleTable.tsx";
-import { useTableSchedule } from "./context/ScheduleContext";
 import ScheduleDndProvider from './provider/ScheduleDndProvider';
 import { TableScheduleProvider } from './provider/TableScheduleProvider';
+// import { useTableSchedule } from "./context/ScheduleContext";
+import { useSchedule } from './hooks/useSchedule'; 
 
 interface Props {
   tableId: string;
@@ -20,9 +21,10 @@ const TableContent = ({
   onDuplicate, 
   onRemove, 
   canRemove,
-  onSearchDialogOpen 
+  onSearchDialogOpen
+
 }: Props) => {
-  const { schedules, updateTableSchedules } = useTableSchedule(tableId);
+  const { schedules, updateSchedules } = useSchedule(tableId);
 
   return (
     <ScheduleDndProvider tableId={tableId}>
@@ -45,16 +47,18 @@ const TableContent = ({
             </Button>
           </ButtonGroup>
         </Flex>
-        <ScheduleTable
+
+       <ScheduleTable
           tableId={tableId}
           onScheduleTimeClick={(timeInfo) => onSearchDialogOpen(timeInfo)}
           onDeleteButtonClick={({ day, time }) => {
             const newSchedules = schedules.filter(
               schedule => schedule.day !== day || !schedule.range.includes(time)
             );
-            updateTableSchedules(newSchedules);
+            updateSchedules(newSchedules);
           }}
         />
+        
       </Stack>
     </ScheduleDndProvider>
   );

@@ -10,11 +10,12 @@ import { Schedule } from "./types.ts";
 import { fill2, parseHnM } from "./utils.ts";
 import { useDndContext } from "@dnd-kit/core";
 import React, { Fragment, memo, useMemo } from "react";
-// import { useTableContext } from './context/TableContext';
+
 import { DraggableSchedule } from './DraggableSchedule';
+import { useSchedule } from './hooks/useSchedule';
+
 import { TableScheduleProvider } from './provider/TableScheduleProvider';
 import ScheduleDndProvider from './provider/ScheduleDndProvider';
-import {useScheduleContext} from './context/ScheduleContext.tsx'
 
 interface Props {
   tableId: string;
@@ -37,11 +38,9 @@ interface Props {
  
 
 
-const ScheduleTableContent = memo(({ tableId, onScheduleTimeClick, onDeleteButtonClick }: Props) => {
-  const { tables } = useScheduleContext();
-  const schedules = React.useMemo(() => tables[tableId] || [], [tables, tableId]);
+ const ScheduleTableContent = memo(({ tableId, onScheduleTimeClick, onDeleteButtonClick }: Props) => {
+  const { schedules } = useSchedule(tableId);
   const dndContext = useDndContext();
-  
 
   const activeTableId = useMemo(() => {
     const activeId = dndContext.active?.id;
@@ -56,7 +55,7 @@ const ScheduleTableContent = memo(({ tableId, onScheduleTimeClick, onDeleteButto
     const lectures = [...new Set(schedules.map(({ lecture }) => lecture.id))];
     return (lectureId: string) => colors[lectures.indexOf(lectureId) % colors.length];
   }, [schedules]);
- 
+
   return (
     
     <Box

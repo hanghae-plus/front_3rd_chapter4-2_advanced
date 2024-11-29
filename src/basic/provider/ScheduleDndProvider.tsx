@@ -1,7 +1,8 @@
 import { DndContext, Modifier, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import React, { PropsWithChildren } from "react";
 import { CellSize, DAY_LABELS } from "../constants";
-import { useScheduleContext } from "../context/ScheduleContext";
+// import { useScheduleContext } from "../context/ScheduleContext";
+import { useSchedule } from '../hooks/useSchedule';
 
 interface Props extends PropsWithChildren {
   tableId: string;
@@ -30,11 +31,11 @@ function createSnapModifier(): Modifier {
 }
 
 
+
 const modifiers = [createSnapModifier()];
 
 export default function ScheduleDndProvider({ tableId, children }: Props) {
-  const { tables, updateTableSchedules } = useScheduleContext();
-  const schedules = React.useMemo(() => tables[tableId] || [], [tables, tableId]);
+  const { schedules, updateSchedules } = useSchedule(tableId);
   
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -53,19 +54,21 @@ export default function ScheduleDndProvider({ tableId, children }: Props) {
     const scheduleIndex = Number(active.id.split(':')[1]);
     if (isNaN(scheduleIndex)) return;
 
+
     const schedule = schedules[scheduleIndex];
+    if (!schedule) return;
+
     const nowDayIndex = DAY_LABELS.indexOf(schedule.day as typeof DAY_LABELS[number]);
     const moveDayIndex = Math.round(x / CellSize.WIDTH);
     const moveTimeIndex = Math.round(y / CellSize.HEIGHT);
 
-
+    
     const newDayIndex = nowDayIndex + moveDayIndex;
     if (newDayIndex < 0 || newDayIndex >= DAY_LABELS.length) return;
 
     const newDay = DAY_LABELS[newDayIndex];
     const newRange = schedule.range.map(time => time + moveTimeIndex);
 
- 
     if (
       newDay === schedule.day && 
       newRange.length === schedule.range.length && 
@@ -77,12 +80,12 @@ export default function ScheduleDndProvider({ tableId, children }: Props) {
       day: newDay,
       range: newRange,
     };
-  
+
     const newSchedules = [...schedules];
     newSchedules[scheduleIndex] = updatedSchedule;
-    updateTableSchedules(tableId, newSchedules);
-
-  }, [schedules, tableId, updateTableSchedules]);
+    updateSchedules(newSchedules);
+  }, [schedules, updateSchedules]);
+  
   
   return (
     <DndContext 

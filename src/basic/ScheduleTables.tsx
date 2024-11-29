@@ -1,8 +1,9 @@
 import { Flex } from "@chakra-ui/react";
-import { useTableIds } from "./context/ScheduleContext.tsx";
+// import { useTableIds } from "./context/ScheduleContext.tsx";
 import SearchDialog from "./SearchDialog.tsx";
 import React, { useState } from "react";
 import { ScheduleTableWrapper } from "./ScheduleTableWrapper";
+import { useTableIds } from './hooks/useSchedule'; 
 
 interface SearchInfo {
   tableId: string;

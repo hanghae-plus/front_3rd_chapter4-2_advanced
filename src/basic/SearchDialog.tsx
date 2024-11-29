@@ -29,11 +29,12 @@ import {
   VStack,
   Wrap,
 } from '@chakra-ui/react';
-import { useScheduleContext } from './context/ScheduleContext.tsx';
+
 import { Lecture } from './types.ts';
 import { parseSchedule } from "./utils.ts";
 import axios from "axios";
 import { DAY_LABELS } from './constants.ts';
+import {useScheduleManagement} from './hooks/useSchedule.ts'
 
 interface Props {
   searchInfo: {
@@ -261,7 +262,7 @@ const LectureTable = memo(({
 // TODO: 이 컴포넌트에서 불필요한 연산이 발생하지 않도록 다양한 방식으로 시도해주세요.
 // useMemo와 useCallback 사용해보기
 const SearchDialog = ({ searchInfo, onClose }: Props) => {
-  const { setSchedulesMap } = useScheduleContext();
+  const { addSchedulesToTable } = useScheduleManagement();
 
   const loaderWrapperRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
@@ -332,13 +333,9 @@ const SearchDialog = ({ searchInfo, onClose }: Props) => {
       lecture
     }));
 
-    setSchedulesMap(prev => ({
-      ...prev,
-      [tableId]: [...prev[tableId], ...schedules]
-    }));
-
+    addSchedulesToTable({ tableId, schedules });
     onClose();
-  }, [searchInfo, setSchedulesMap, onClose]);
+  }, [searchInfo, addSchedulesToTable, onClose]);
   
 
   const handleMajorsChange = useCallback((majors: string[]) => {

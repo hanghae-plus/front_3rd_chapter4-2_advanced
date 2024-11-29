@@ -1,7 +1,8 @@
 // import { PropsWithChildren } from 'react';
 import { Schedule } from '../types';
 import { TableProvider } from '../context/TableContext';
-import { useScheduleContext } from '../context/ScheduleContext';
+// import { useScheduleContext } from '../context/ScheduleContext';
+import { useSchedule } from '../hooks/useSchedule';
 
 export interface TableScheduleProviderProps {
   tableId: string;
@@ -9,12 +10,12 @@ export interface TableScheduleProviderProps {
 }
 
 export const TableScheduleProvider = ({ tableId, children }: TableScheduleProviderProps) => {
-  const { tables, updateTableSchedules } = useScheduleContext();
+  const { schedules, updateSchedules } = useSchedule(tableId);
   
   return (
     <TableProvider 
-      initialSchedules={tables[tableId] || []}
-      onSchedulesChange={(schedules: Schedule[]) => updateTableSchedules(tableId, schedules)}
+      initialSchedules={schedules}
+      onSchedulesChange={updateSchedules}
     >
       {children}
     </TableProvider>
