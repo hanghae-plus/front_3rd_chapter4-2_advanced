@@ -1,5 +1,5 @@
 import { Schedule } from '../../type/types.ts';
-import { ComponentProps } from 'react';
+import { ComponentProps, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -24,6 +24,7 @@ const DraggableSchedule = ({
     onDeleteButtonClick: () => void;
   }) => {
   const { day, range, room, lecture } = data;
+
   const { attributes, setNodeRef, listeners, transform } = useDraggable({ id });
   const leftIndex = DAY_LABELS.indexOf(day as (typeof DAY_LABELS)[number]);
   const topIndex = range[0] - 1;

@@ -31,7 +31,7 @@ export const ScheduleTables = () => {
   return (
     <>
       <Flex w="full" gap={6} p={6} flexWrap="wrap">
-        {Object.entries(schedulesMap).map(([tableId, schedules], index) => (
+        {Object.entries(schedulesMap).map(([tableId], index) => (
           <Stack key={tableId} width="600px">
             <Flex justifyContent="space-between" alignItems="center">
               <Heading as="h3" fontSize="lg">
@@ -55,7 +55,7 @@ export const ScheduleTables = () => {
             </Flex>
             <ScheduleTable
               key={`schedule-table-${index}`}
-              schedules={schedules}
+              schedules={schedulesMap[`schedule-${index + 1}`]}
               tableId={tableId}
               onScheduleTimeClick={(timeInfo) => setSearchInfo({ tableId, ...timeInfo })}
               onDeleteButtonClick={({ day, time }) =>
