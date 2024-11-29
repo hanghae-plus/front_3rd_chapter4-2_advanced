@@ -2,7 +2,9 @@ import { Button, ButtonGroup, Flex, Heading, Stack } from "@chakra-ui/react";
 import ScheduleTable from "./ScheduleTable.tsx";
 import { useScheduleContext } from "./ScheduleContext.tsx";
 import SearchDialog from "./SearchDialog.tsx";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useDndContext } from "@dnd-kit/core";
+import { ScheduleTableContextProvider } from "./ScheduleTableContextProvider.tsx";
 
 export const ScheduleTables = () => {
   const { schedulesMap, setSchedulesMap } = useScheduleContext();
@@ -28,10 +30,35 @@ export const ScheduleTables = () => {
     })
   }
 
+  const dndContext = useDndContext();
+  const activeTableId = useMemo(() => {
+    const activeId = dndContext.active?.id;
+    if (activeId) {
+      return String(activeId).split(":")[0];
+    }
+    return null;
+  }, [dndContext.active?.id]);
+
+  const schedulesEntries = useMemo(() => Object.entries(schedulesMap), [schedulesMap]);
+
+  const scheduleHandlers = useMemo(() => {
+    return schedulesEntries.map(([tableId]) => ({
+      handleScheduleTimeClick(timeInfo: { day: string; time: number }) {
+        setSearchInfo({ tableId, ...timeInfo });
+      },
+      handleDeleteButtonClick({ day, time }: { day: string; time: number }) {
+        setSchedulesMap((prev) => ({
+          ...prev,
+          [tableId]: prev[tableId].filter(schedule => schedule.day !== day || !schedule.range.includes(time))
+        }));
+      },
+    }))
+  }, [schedulesEntries, setSchedulesMap]);
+
   return (
     <>
       <Flex w="full" gap={6} p={6} flexWrap="wrap">
-        {Object.entries(schedulesMap).map(([tableId, schedules], index) => (
+        {schedulesEntries.map(([tableId, schedules], index) => (
           <Stack key={tableId} width="600px">
             <Flex justifyContent="space-between" alignItems="center">
               <Heading as="h3" fontSize="lg">시간표 {index + 1}</Heading>
@@ -42,16 +69,15 @@ export const ScheduleTables = () => {
                         onClick={() => remove(tableId)}>삭제</Button>
               </ButtonGroup>
             </Flex>
-            <ScheduleTable
-              key={`schedule-table-${index}`}
-              schedules={schedules}
-              tableId={tableId}
-              onScheduleTimeClick={(timeInfo) => setSearchInfo({ tableId, ...timeInfo })}
-              onDeleteButtonClick={({ day, time }) => setSchedulesMap((prev) => ({
-                ...prev,
-                [tableId]: prev[tableId].filter(schedule => schedule.day !== day || !schedule.range.includes(time))
-              }))}
-            />
+            <ScheduleTableContextProvider schedules={schedules}>
+              <ScheduleTable
+                key={`schedule-table-${index}`}
+                tableId={tableId}
+                activeOutline={activeTableId === tableId}
+                onScheduleTimeClick={scheduleHandlers[index].handleScheduleTimeClick}
+                onDeleteButtonClick={scheduleHandlers[index].handleDeleteButtonClick}
+              />
+            </ScheduleTableContextProvider>
           </Stack>
         ))}
       </Flex>
