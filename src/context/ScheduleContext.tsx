@@ -1,10 +1,17 @@
-import React, { createContext, PropsWithChildren, useContext, useState } from 'react';
-import { Schedule } from '../type/types.ts';
-import dummyScheduleMap from '../../public/dummyScheduleMap.ts';
+import {
+  createContext,
+  Dispatch,
+  PropsWithChildren,
+  SetStateAction,
+  useContext,
+  useState,
+} from 'react';
+import { Schedule } from '../type/types';
+import dummyScheduleMap from '../data/dummyScheduleMap.ts';
 
 interface ScheduleContextType {
   schedulesMap: Record<string, Schedule[]>;
-  setSchedulesMap: React.Dispatch<React.SetStateAction<Record<string, Schedule[]>>>;
+  setSchedulesMap: Dispatch<SetStateAction<Record<string, Schedule[]>>>;
 }
 
 const ScheduleContext = createContext<ScheduleContextType | undefined>(undefined);

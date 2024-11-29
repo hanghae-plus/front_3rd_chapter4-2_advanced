@@ -1,9 +1,9 @@
 import { Box } from '@chakra-ui/react';
-import { Schedule } from '../type/types.ts';
+import { Schedule } from '../type/types';
 import { useDndContext } from '@dnd-kit/core';
-import DraggableSchedule from './schedule-table/DraggableSchedule.tsx';
-import ScheduleTableGrid from './schedule-table/ScheduleTableGrid.tsx';
-import ScheduleDndProvider from '../provider/ScheduleDndProvider.tsx';
+import DraggableSchedule from './schedule-table/DraggableSchedule';
+import ScheduleTableGrid from './schedule-table/ScheduleTableGrid';
+import ScheduleDndProvider from '../context/ScheduleDndProvider';
 import { useState } from 'react';
 
 interface Props {
@@ -14,7 +14,7 @@ interface Props {
 }
 
 const ScheduleTable = ({ tableId, onScheduleTimeClick, onDeleteButtonClick, schedules }: Props) => {
-  const [oneOfSchedules, setOneOfSchedules] = useState<Schedule[]>(schedules); // 테이블별 로컬 상태
+  const [oneOfSchedules, setOneOfSchedules] = useState<Schedule[]>(schedules);
 
   const getColor = (lectureId: string): string => {
     const lectures = [...new Set(oneOfSchedules.map(({ lecture }) => lecture.id))];

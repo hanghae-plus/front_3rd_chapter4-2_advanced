@@ -1,5 +1,5 @@
 import { Schedule } from '../../type/types.ts';
-import { ComponentProps, useEffect } from 'react';
+import { ComponentProps } from 'react';
 import {
   Box,
   Button,

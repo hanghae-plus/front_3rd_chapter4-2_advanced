@@ -36,6 +36,8 @@ interface ScheduleDndProviderProps extends PropsWithChildren {
   updateSchedules: (schedules: Schedule[]) => void;
 }
 
+export type DayLabel = (typeof DAY_LABELS)[number];
+
 export default function ScheduleDndProvider({
   tableId,
   schedules,
@@ -58,11 +60,10 @@ export default function ScheduleDndProvider({
 
     if (draggedTableId !== tableId) return;
 
-    const nowDayIndex = DAY_LABELS.indexOf(schedules[Number(index)].day);
+    const nowDayIndex = DAY_LABELS.indexOf(schedules[Number(index)].day as DayLabel);
     const moveDayIndex = Math.floor(x / CellSize.WIDTH);
     const moveTimeIndex = Math.floor(y / CellSize.HEIGHT);
 
-    console.log(x, y, 'xy', moveDayIndex, moveTimeIndex);
     const updatedSchedules = schedules.map((schedule, idx) => {
       if (idx !== Number(index)) return schedule;
 

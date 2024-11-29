@@ -1,7 +1,7 @@
 import { Button, ButtonGroup, Flex, Heading, Stack } from '@chakra-ui/react';
 import ScheduleTable from './ScheduleTable.tsx';
-import { useScheduleContext } from '../provider/ScheduleContext.tsx';
-import SearchDialog from './SearchDialog.tsx';
+import { useScheduleContext } from '../context/ScheduleContext.tsx';
+import SearchDialog from './SearchDialog';
 import { useState } from 'react';
 
 export const ScheduleTables = () => {
@@ -58,7 +58,7 @@ export const ScheduleTables = () => {
               schedules={schedulesMap[`schedule-${index + 1}`]}
               tableId={tableId}
               onScheduleTimeClick={(timeInfo) => setSearchInfo({ tableId, ...timeInfo })}
-              onDeleteButtonClick={({ day, time }) =>
+              onDeleteButtonClick={({ day, time }: { day: string; time: number }) =>
                 setSchedulesMap((prev) => ({
                   ...prev,
                   [tableId]: prev[tableId].filter(

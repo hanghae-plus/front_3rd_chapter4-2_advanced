@@ -10,7 +10,6 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react';
-import { useScheduleContext } from '../provider/ScheduleContext.tsx';
 import { Lecture } from '../type/types.ts';
 import { parseSchedule } from '../util/utils.ts';
 import axios from 'axios';
@@ -21,28 +20,38 @@ import Days from './search-dialog/form/Days.tsx';
 import Times from './search-dialog/form/Times.tsx';
 import Major from './search-dialog/form/Major.tsx';
 import LectureTable from './search-dialog/table/LectureTable.tsx';
+import { useScheduleContext } from '../context/ScheduleContext';
+
+interface SearchInfo {
+  tableId: string;
+  day?: string;
+  time?: number;
+}
 
 interface Props {
-  searchInfo: {
-    tableId: string;
-    day?: string;
-    time?: number;
-  } | null;
+  searchInfo: SearchInfo | null;
   onClose: () => void;
 }
 
 const PAGE_SIZE = 100;
 
 const createAPICache = () => {
-  const cache: Record<string, Promise<any>> = {};
+  const cache: Record<
+    string,
+    { promise: Promise<{ data: Lecture[] }>; result?: { data: Lecture[] } }
+  > = {};
 
-  return (key: string, fetchFunction: () => Promise<any>) => {
+  return (key: string, fetchFunction: () => Promise<{ data: Lecture[] }>) => {
     if (cache[key]) {
-      return cache[key];
+      return cache[key].promise;
     }
 
-    const fetchPromise = fetchFunction().then((result) => result);
-    cache[key] = fetchPromise;
+    const fetchPromise = fetchFunction().then((result) => {
+      cache[key].result = result; // 결과를 캐시에 저장
+      return result;
+    });
+
+    cache[key] = { promise: fetchPromise }; // 캐시에 promise 저장
     return fetchPromise;
   };
 };
