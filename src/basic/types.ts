@@ -13,3 +13,8 @@ export interface Schedule {
   range: number[]
   room?: string;
 }
+
+export interface TableSchedule {
+  id: string;
+  schedules: Schedule[];
+}
