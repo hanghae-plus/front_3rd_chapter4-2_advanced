@@ -1,5 +1,5 @@
 import { DragEndEvent } from '@dnd-kit/core';
-import React, {
+import {
   createContext,
   PropsWithChildren,
   useCallback,
@@ -17,9 +17,8 @@ export type DeleteSchedule = (
 
 interface ScheduleContextType {
   schedulesMap: Record<string, Schedule[]>;
-  setSchedulesMap: React.Dispatch<
-    React.SetStateAction<Record<string, Schedule[]>>
-  >;
+  getSchedules: (tableId: string) => Schedule[];
+
   duplicateSchedule: (targetId: string) => void;
   removeSchedule: (targetId: string) => void;
 
@@ -43,6 +42,13 @@ export const useScheduleContext = () => {
 export const ScheduleProvider = ({ children }: PropsWithChildren) => {
   const [schedulesMap, setSchedulesMap] =
     useState<Record<string, Schedule[]>>(dummyScheduleMap);
+
+  const getSchedules = useCallback(
+    (tableId: string) => {
+      return schedulesMap[tableId] || [];
+    },
+    [schedulesMap],
+  );
 
   const duplicateSchedule = useCallback((targetId: string) => {
     setSchedulesMap(prev => ({
@@ -68,28 +74,32 @@ export const ScheduleProvider = ({ children }: PropsWithChildren) => {
   const updateSchedule = useCallback((event: DragEndEvent) => {
     const { active, delta } = event;
     const { x, y } = delta;
-    const [tableId, index] = String(active.id).split(':');
+    const [tableId, scheduleIndex] = String(active.id).split(':');
+    const targetIndex = Number(scheduleIndex);
 
-    const moveDayIndex = Math.floor(x / 80);
-    const moveTimeIndex = Math.floor(y / 30);
+    const CELL_WIDTH = 80;
+    const CELL_HEIGHT = 30;
+    const dayOffset = Math.floor(x / CELL_WIDTH);
+    const timeOffset = Math.floor(y / CELL_HEIGHT);
 
     setSchedulesMap(prev => {
-      const schedule = prev[tableId][Number(index)];
-      const nowDayIndex = DAY_LABELS.indexOf(
-        schedule.day as (typeof DAY_LABELS)[number],
+      const currentSchedule = prev[tableId][targetIndex];
+      const currentDayIndex = DAY_LABELS.indexOf(
+        currentSchedule.day as (typeof DAY_LABELS)[number],
       );
+      const newDayIndex = currentDayIndex + dayOffset;
+
+      if (prev[tableId] === undefined) return prev;
 
       return {
         ...prev,
-        [tableId]: prev[tableId].map((targetSchedule, targetIndex) => {
-          if (targetIndex !== Number(index)) {
-            return { ...targetSchedule };
-          }
+        [tableId]: prev[tableId].map((schedule, index) => {
+          if (index !== targetIndex) return schedule;
 
           return {
-            ...targetSchedule,
-            day: DAY_LABELS[nowDayIndex + moveDayIndex],
-            range: targetSchedule.range.map(time => time + moveTimeIndex),
+            ...schedule,
+            day: DAY_LABELS[newDayIndex],
+            range: schedule.range.map(time => time + timeOffset),
           };
         }),
       };
@@ -111,7 +121,7 @@ export const ScheduleProvider = ({ children }: PropsWithChildren) => {
     <ScheduleContext.Provider
       value={{
         schedulesMap,
-        setSchedulesMap,
+        getSchedules,
         duplicateSchedule,
         removeSchedule,
         addSchedule,
